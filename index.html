@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gerador de Crachás — Vision #1 • Local</title>
+<title>Gerador de Crachás • V1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cambay:wght@700&display=swap" rel="stylesheet">
@@ -19,7 +19,8 @@
 .editorRow output{font-size:11px;text-align:right;color:#555}
 button.full{width:100%;margin-top:5px}
 .note2{font-size:12px;color:#666;line-height:1.4}
-#photo{cursor:grab;touch-action:none}
+#photoViewport{position:absolute;left:36px;top:78px;width:292px;height:430px;overflow:hidden;z-index:2}
+#photo{position:absolute;left:0;top:0;width:292px;height:430px;object-fit:contain;cursor:grab;touch-action:none;transform-origin:center center;z-index:2}
 #photo.dragging{cursor:grabbing}
 #photoEditor{position:absolute;left:36px;top:78px;width:292px;height:430px;z-index:4;display:none;pointer-events:none;transform-origin:center center}
 #photoEditor.active{display:block}
@@ -68,11 +69,10 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .preview{min-height:690px;background:#e9ebef;border-radius:14px;display:flex;justify-content:center;align-items:center;padding:25px}
 #badge{position:relative;width:384px;height:604px;overflow:hidden;background:#44dfc2 center/100% 100% no-repeat;box-shadow:0 10px 28px rgba(0,0,0,.13)}
 .photo-back{position:absolute;left:36px;top:140px;width:292px;height:328px;background:#fff;border-radius:17px 17px 0 0;z-index:1}
-#photo{position:absolute;left:36px;top:78px;width:292px;height:430px;object-fit:contain;z-index:2;display:none;overflow:visible;transform-origin:center center}
 .photo-placeholder{position:absolute;left:36px;top:78px;width:292px;height:430px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:13px;font-weight:700;z-index:2}
 .namebox{position:absolute;left:73px;top:396px;width:280px;height:94px;background:#fff;border-radius:17px;z-index:5;padding:7px 15px;display:flex;align-items:flex-start}
 #name{font-family:"Cambay","CambayLocal",Arial,sans-serif;font-weight:700;font-size:31px;line-height:.9;letter-spacing:-1.2px;max-width:250px}
-#visionLogo{position:absolute;left:185px;top:500px;width:184px;height:51px;object-fit:contain;z-index:20;pointer-events:none}
+#visionLogo{position:absolute;left:182px;top:476px;width:184px;height:51px;object-fit:contain;z-index:20;pointer-events:none}
 
 /* Identidade visual Corporate Security / JTI */
 body{background:#eef1f3}
@@ -104,7 +104,7 @@ body{background:#eef1f3}
     </div>
   </div>
   <div class="brandRight">
-    <span class="tag">GSC Corporate Securty • Brazil</span>
+    <span class="tag">GSC Corporate Security • Brazil</span>
     <div class="brandDivider"></div>
     <img class="jtiLogo" src="jti_logo_white.png" alt="JTI">
   </div>
@@ -141,12 +141,12 @@ body{background:#eef1f3}
   <div class="editorBox">
     <div class="editorTitle">⚙️ Configurar Vision #1</div>
     <div class="editorRow">
-      <label>X <input id="visionX" type="range" min="120" max="280" value="185"></label>
-      <output id="visionXVal">185</output>
+      <label>X <input id="visionX" type="range" min="120" max="280" value="182"></label>
+      <output id="visionXVal">182</output>
     </div>
     <div class="editorRow">
-      <label>Y <input id="visionY" type="range" min="430" max="560" value="500"></label>
-      <output id="visionYVal">500</output>
+      <label>Y <input id="visionY" type="range" min="430" max="560" value="476"></label>
+      <output id="visionYVal">476</output>
     </div>
     <div class="editorRow">
       <label>Tamanho <input id="visionSize" type="range" min="100" max="230" value="184"></label>
@@ -157,7 +157,7 @@ body{background:#eef1f3}
 
   <div class="editorBox">
     <div class="editorTitle">🖼️ Ajustar foto</div>
-    <div class="note2">Você pode enviar JPG, PNG ou WEBP. Para fotos com fundo, use <b>✨ REMOVER FUNDO</b>; o resultado transparente entra automaticamente no crachá. Depois, <b>arraste a pessoa</b> para posicionar e <b>puxe qualquer canto ou lateral da foto</b> para redimensionar. Os cantos mantêm a proporção e as laterais permitem ajustar largura/altura separadamente. Os botões +/− continuam disponíveis para ajustes finos. O PNG exportado usa o mesmo enquadramento da prévia.</div>
+    <div class="note2">Você pode enviar JPG, PNG ou WEBP. Para fotos com fundo, use <b>✨ REMOVER FUNDO</b>; o resultado transparente entra automaticamente no crachá. Depois, <b>arraste a pessoa</b> para posicionar e <b>puxe qualquer canto ou lateral</b> para ajustar a área visível, como no Canva. A imagem não é esticada: a parte que sai da área de corte simplesmente fica oculta. Use <b>arrastar a pessoa</b> e os botões +/− para mudar a posição e o tamanho da foto. Os botões +/− continuam disponíveis para ajustes finos. O PNG exportado usa o mesmo enquadramento da prévia.</div>
   </div>
 
   <div class="note"><b>Importante:</b> o Vision #1 continua sempre <b>na frente da caixa do nome</b>.</div>
@@ -166,7 +166,9 @@ body{background:#eef1f3}
 <section class="preview">
   <div id="badge">
     <div class="photo-back"></div>
-    <img id="photo">
+    <div id="photoViewport">
+      <img id="photo">
+    </div>
     <div id="photoEditor" aria-label="Redimensionar foto">
       <div class="resizeBox"></div>
       <span class="resizeHandle tl" data-dir="tl" title="Redimensionar canto"></span>
@@ -196,12 +198,31 @@ const placeholder=document.querySelector('.photo-placeholder');
 const nameInput=document.getElementById('nameInput');
 const nameEl=document.getElementById('name');
 let zoom=1, scaleX=1, scaleY=1, imageLoaded=false; let photoX=0, photoY=0; let dragging=false, dragStartX=0, dragStartY=0, startPhotoX=0, startPhotoY=0;
+// Área de corte (como no Canva): a foto continua no mesmo tamanho/escala; somente a janela visível muda.
+const BASE_PHOTO_W=292, BASE_PHOTO_H=430;
+let cropX=36, cropY=78, cropW=292, cropH=430;
 
 function fitName(){
+  // O preview e o PNG usam a mesma regra: no máximo 2 linhas dentro da caixa.
+  // Reduzimos a fonte até que TODAS as palavras caibam nas duas linhas, evitando
+  // que a terceira linha seja simplesmente cortada na exportação.
+  const text=(nameEl.textContent||'Nome do colaborador').trim();
+  const c=document.createElement('canvas');
+  const ctx=c.getContext('2d');
+  const spacing=-1.2;
   let size=31;
-  nameEl.style.fontSize=size+'px';
+  while(size>=14){
+    ctx.font='700 '+size+'px Cambay, Arial, sans-serif';
+    const lines=wrap(ctx,text,250,spacing);
+    if(lines.length<=2){
+      nameEl.style.fontSize=size+'px';
+      nameEl.style.lineHeight='.9';
+      return;
+    }
+    size--;
+  }
+  nameEl.style.fontSize='14px';
   nameEl.style.lineHeight='.9';
-  while(nameEl.scrollHeight>82 && size>18){size--;nameEl.style.fontSize=size+'px'}
 }
 function updateName(){nameEl.textContent=nameInput.value.trim()||'Nome do colaborador';fitName()}
 nameInput.addEventListener('input',updateName);
@@ -219,7 +240,7 @@ function showPhotoSource(src, reset=true){
   photo.onload=()=>{imageLoaded=true};
   photo.src=src;
   photo.style.display='block'; placeholder.style.display='none';
-  if(reset){zoom=1; scaleX=1; scaleY=1; photoX=0; photoY=0;}
+  if(reset){zoom=1; scaleX=1; scaleY=1; photoX=0; photoY=0; cropX=36; cropY=78; cropW=BASE_PHOTO_W; cropH=BASE_PHOTO_H;}
   photoEditor.classList.add('active');
   applyPhotoTransform();
 }
@@ -260,7 +281,7 @@ removeBgBtn.addEventListener('click',async()=>{
     const removeBackground=await getLocalBackgroundRemover();
     removeBgBtn.textContent='⏳ REMOVENDO FUNDO...';
     const config={
-      model:'isnet_quint8',
+      model:'isnet_fp16',
       device:'cpu',
       output:{format:'image/png',quality:1},
       progress:(key,current,total)=>{
@@ -277,7 +298,7 @@ removeBgBtn.addEventListener('click',async()=>{
     }catch(firstError){
       console.warn('Primeira tentativa do removedor falhou. Tentando novamente com configuração padrão.',firstError);
       blob=await removeBackground(selectedImageFile,{
-        model:'isnet_quint8',
+        model:'isnet_fp16',
         output:{format:'image/png',quality:1}
       });
     }
@@ -308,18 +329,37 @@ drop.addEventListener('drop',e=>{
 
 document.getElementById('plus').onclick=()=>{zoom=Math.min(2,zoom+.1);applyPhotoTransform()};
 document.getElementById('minus').onclick=()=>{zoom=Math.max(.7,zoom-.1);applyPhotoTransform()};
-document.getElementById('reset').onclick=()=>{zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;applyPhotoTransform()};
+document.getElementById('reset').onclick=()=>{zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;cropX=36;cropY=78;cropW=BASE_PHOTO_W;cropH=BASE_PHOTO_H;applyPhotoTransform()};
 
 function applyPhotoTransform(){
   const transform=`translate(${photoX}px,${photoY}px) scale(${zoom*scaleX},${zoom*scaleY})`;
   photo.style.transform=transform;
-  photoEditor.style.transform=transform;
+  // A foto não acompanha mais as alças. O viewport é a área de corte.
+  const viewport=document.getElementById('photoViewport');
+  viewport.style.left=cropX+'px';
+  viewport.style.top=cropY+'px';
+  viewport.style.width=cropW+'px';
+  viewport.style.height=cropH+'px';
+  photoEditor.style.left=cropX+'px';
+  photoEditor.style.top=cropY+'px';
+  photoEditor.style.width=cropW+'px';
+  photoEditor.style.height=cropH+'px';
 }
 
-// Redimensionamento direto no estilo Canva: 8 alças (4 cantos + 4 laterais).
-// Cantos mantêm a proporção; laterais ajustam apenas largura/altura.
-let resizing=false, resizeStartX=0, resizeStartY=0, resizeStartScaleX=1, resizeStartScaleY=1, resizeStartPhotoX=0, resizeStartPhotoY=0, resizeDir='';
-const BASE_PHOTO_W=292, BASE_PHOTO_H=430;
+// Redimensionamento no estilo "cortar" do Canva.
+// As alças alteram somente a janela visível (crop), sem esticar/encolher a imagem.
+let resizing=false, resizeStartX=0, resizeStartY=0;
+let resizeStartCropX=36, resizeStartCropY=78, resizeStartCropW=292, resizeStartCropH=430, resizeDir='';
+const MIN_CROP_W=60, MIN_CROP_H=60;
+
+function clampCrop(x,y,w,h){
+  const minX=36, minY=78, maxX=36+BASE_PHOTO_W, maxY=78+BASE_PHOTO_H;
+  w=Math.max(MIN_CROP_W,Math.min(BASE_PHOTO_W,w));
+  h=Math.max(MIN_CROP_H,Math.min(BASE_PHOTO_H,h));
+  x=Math.max(minX,Math.min(maxX-w,x));
+  y=Math.max(minY,Math.min(maxY-h,y));
+  return {x,y,w,h};
+}
 
 document.querySelectorAll('.resizeHandle').forEach(handle=>{
   handle.addEventListener('pointerdown',e=>{
@@ -327,8 +367,8 @@ document.querySelectorAll('.resizeHandle').forEach(handle=>{
     e.preventDefault(); e.stopPropagation();
     resizing=true;
     resizeStartX=e.clientX; resizeStartY=e.clientY;
-    resizeStartScaleX=scaleX; resizeStartScaleY=scaleY;
-    resizeStartPhotoX=photoX; resizeStartPhotoY=photoY;
+    resizeStartCropX=cropX; resizeStartCropY=cropY;
+    resizeStartCropW=cropW; resizeStartCropH=cropH;
     resizeDir=handle.dataset.dir||'br';
     handle.setPointerCapture(e.pointerId);
   });
@@ -338,37 +378,20 @@ document.querySelectorAll('.resizeHandle').forEach(handle=>{
     const sx=384/rect.width, sy=604/rect.height;
     const dx=(e.clientX-resizeStartX)*sx;
     const dy=(e.clientY-resizeStartY)*sy;
-    let nx=resizeStartScaleX, ny=resizeStartScaleY;
+    let x=resizeStartCropX, y=resizeStartCropY, r=resizeStartCropX+resizeStartCropW, b=resizeStartCropY+resizeStartCropH;
     const d=resizeDir;
-    if(d==='mr' || d==='ml'){
-      const signed=d==='mr'?dx:-dx;
-      nx=Math.max(.35,Math.min(3.5,resizeStartScaleX*(1+signed/BASE_PHOTO_W)));
-      photoX=resizeStartPhotoX + (d==='mr'?1:-1)*(BASE_PHOTO_W*(nx-resizeStartScaleX))/2;
-      photoY=resizeStartPhotoY;
-    }else if(d==='tm' || d==='bm'){
-      const signed=d==='bm'?dy:-dy;
-      ny=Math.max(.35,Math.min(3.5,resizeStartScaleY*(1+signed/BASE_PHOTO_H)));
-      photoY=resizeStartPhotoY + (d==='bm'?1:-1)*(BASE_PHOTO_H*(ny-resizeStartScaleY))/2;
-      photoX=resizeStartPhotoX;
-    }else{
-      // Cantos: usa o movimento do canto na diagonal para escalar X e Y juntos.
-      const dirX=d.includes('r')?1:-1, dirY=d.includes('b')?1:-1;
-      const candidateX=resizeStartScaleX*(1+(dx*dirX)/BASE_PHOTO_W);
-      const candidateY=resizeStartScaleY*(1+(dy*dirY)/BASE_PHOTO_H);
-      const factor=Math.abs(candidateX/resizeStartScaleX-1)>=Math.abs(candidateY/resizeStartScaleY-1)
-        ? candidateX/resizeStartScaleX : candidateY/resizeStartScaleY;
-      const clamped=Math.max(.35,Math.min(3.5,factor));
-      nx=resizeStartScaleX*clamped; ny=resizeStartScaleY*clamped;
-      photoX=resizeStartPhotoX + dirX*(BASE_PHOTO_W*(nx-resizeStartScaleX))/2;
-      photoY=resizeStartPhotoY + dirY*(BASE_PHOTO_H*(ny-resizeStartScaleY))/2;
-    }
-    scaleX=nx; scaleY=ny;
+    if(d.includes('l')) x=Math.min(resizeStartCropX+dx,r-MIN_CROP_W);
+    if(d.includes('r')) r=Math.max(resizeStartCropX+MIN_CROP_W,resizeStartCropX+resizeStartCropW+dx);
+    if(d.includes('t')) y=Math.min(resizeStartCropY+dy,b-MIN_CROP_H);
+    if(d.includes('b')) b=Math.max(resizeStartCropY+MIN_CROP_H,resizeStartCropY+resizeStartCropH+dy);
+    const c=clampCrop(x,y,r-x,b-y);
+    cropX=c.x; cropY=c.y; cropW=c.w; cropH=c.h;
     applyPhotoTransform();
   });
   const stopResize=e=>{
     if(!resizing)return;
     resizing=false;
-    try{handle.releasePointerCapture(e.pointerId)}catch(_){}
+    try{handle.releasePointerCapture(e.pointerId)}catch(_){ }
   };
   handle.addEventListener('pointerup',stopResize);
   handle.addEventListener('pointercancel',stopResize);
@@ -402,7 +425,7 @@ function updateVision(){
 }
 [vx,vy,vs].forEach(el=>el.addEventListener('input',updateVision));
 document.getElementById('resetVision').onclick=()=>{
-  vx.value=185;vy.value=500;vs.value=184;updateVision();
+  vx.value=182;vy.value=476;vs.value=184;updateVision();
 };
 document.getElementById('generate').onclick=()=>{updateName();badge.animate([{transform:'scale(1)'},{transform:'scale(1.015)'},{transform:'scale(1)'}],{duration:180})};
 
@@ -450,6 +473,8 @@ function canvasBadge(){
         const baseLeft=36+(292-baseW)/2, baseTop=78+(430-baseH)/2;
         const drawX=cx+(baseLeft-cx)*sx+photoX;
         const drawY=cy+(baseTop-cy)*sy+photoY;
+        // Mesmo corte da prévia: a janela muda, a imagem não é redimensionada pelas alças.
+        ctx.beginPath();ctx.rect(cropX,cropY,cropW,cropH);ctx.clip();
         ctx.drawImage(photo,drawX,drawY,dw,dh);
         ctx.restore();
       }else{
@@ -458,12 +483,29 @@ function canvasBadge(){
       // name card
       ctx.fillStyle='#fff';roundedRect(ctx,73,396,280,94,17);ctx.fill();
       ctx.fillStyle='#000';ctx.textAlign='left';
-      let fs=Math.max(18,Math.min(31,parseFloat(getComputedStyle(nameEl).fontSize)||31));
+      const fs=Math.max(14,Math.min(31,parseFloat(getComputedStyle(nameEl).fontSize)||31));
       ctx.font='700 '+fs+'px Cambay, Arial, sans-serif';
       const spacing=-1.2;
-      const lines=wrap(ctx,nameEl.textContent,250,spacing).slice(0,2);
+      const lines=wrap(ctx,nameEl.textContent,250,spacing);
+      // fitName garante duas linhas; esta proteção reduz a fonte novamente caso
+      // o navegador ainda não tenha terminado de carregar a fonte.
+      if(lines.length>2){
+        let testSize=fs;
+        while(testSize>14){
+          testSize--;
+          ctx.font='700 '+testSize+'px Cambay, Arial, sans-serif';
+          const testLines=wrap(ctx,nameEl.textContent,250,spacing);
+          if(testLines.length<=2){
+            nameEl.style.fontSize=testSize+'px';
+            break;
+          }
+        }
+      }
+      const finalFs=Math.max(14,Math.min(31,parseFloat(getComputedStyle(nameEl).fontSize)||fs));
+      ctx.font='700 '+finalFs+'px Cambay, Arial, sans-serif';
+      const finalLines=wrap(ctx,nameEl.textContent,250,spacing).slice(0,2);
       let y=426;
-      for(const line of lines){drawSpaced(ctx,line,88,y,spacing);y+=fs*.9}
+      for(const line of finalLines){drawSpaced(ctx,line,88,y,spacing);y+=finalFs*.9}
       const lg=new Image();
       lg.onload=()=>{const vxOut=+vx.value,vyOut=+vy.value,vsOut=+vs.value; ctx.drawImage(lg,vxOut,vyOut,vsOut,vsOut*51/184);resolve(c)};
       lg.src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALgAAAAzCAYAAAAkRMLcAAADvUlEQVR4nO2cvW0dMQzHeUFGyC7ZII2bNGlcx4ukSeM5bMBNlkiRIbzLS5MLZFnSURRJkRJ/gGHj+U4fvL8oiie9A4LAHzfshR8kWxHADToehnPOvn7uuJZin13saZ4XoD9Ej2BFm19HsU2pjNpPIMRuhs77+wNxDYdtQuCT2MnQGGGl//t1ce1o3f/L3S0GPzv+U7neQ7k+yxwA8Ht2I1ZFy6N+S+q5F67LAlcePP9MK0TZyoM/Ktb16d/vBwB4UqzXCg/J36eAYxYTRjMm/gIAX4XrsMJ3uPbed4XPOJ5FLDAT0o5jcrUBjpawbgDwB3EPZ91biPu18Nk2nVfmynufPBeuxfz01P3uPitxUa0j1PbdCveuFAvm9prZp1pbRhwJtj+tOg4AgI8DjdCgJFQqKwgboJ5jttI/qrBF2u8hi9JrsF1DEO1+c4V7BwgOTusenIoVbzYDyfCFexCNtA3VFg8C7zHCrt77xFr4UlsHqdXrIUTBIm08z4NHs+0HCIcdPXjw4LPJ87qWMha99462/bhoA6V87vLesIrAUyNJx5xc6UapNqfllfLSHCIvlV0qF5PHrpXPwioCP9FcUI2IpfVCBAbKze+98ricUOoRnw1XEzgX2IeVi5xLqNTBoxE+cQ0Yqba+KXcFgachA8cUTH2A2AwGpnzKdN/z9o/jTeEVrT6oPaMVBM4J1nAmMgQJFtpz1YYpWSjvAufMcFgSN/cWBYnX55KLZDa8CzwFO61Tpv/WvVxQhWhWXBVU2+v5RQ/Vg8zcDNRTdz47leDK4oxgeoB5FjgXmIWPdHypnTGZIUquOrtsvYLAa4bDGELSS2pA3dE3a9uBui29Clx9084EsLMGpo2WB6koVgQ+K3fdQlsUM/Zzj9RrZkNVCysC76G0uDS3yaejHC2RtLJHnnZKdtlrpTQhFoyBNM885gO2Jwe+63G+2vaId/3wLPB0V5v0xnqtA8ut3Ysc5DsBvQm7RLMP1kMUjHCpD4k7rOFCQ3Qu4mcOrAtcGqsiD5iwLnDPHrNU7lVdW3hVTawLPKW0mOgdADUBlabs1tnCkUVoqw09xGBA4HWRKXU2cmbKLhDAkwfP0ToATNnUFQI2ghcPTglFOHLZeTqtlV4LURvEi8BnkB+Fs0QMJiSWDMW1YKyVR7le/GsNOpn9vSzusBSDS303CBVr4rZQvztWD1E4BRHicoi1h2bhbKSLw7QBjtU9OIUQ9UJYisGDgB1rAg/vGbBiTeAYYhAEaCwKPAQcsOFpkRnCD7r5CxnyOuWDybIZAAAAAElFTkSuQmCC";
