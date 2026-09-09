@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gerador de Crachás • V1</title>
+<title>Gerador de Crachás — Vision #1 • Local</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cambay:wght@700&display=swap" rel="stylesheet">
@@ -22,8 +22,8 @@ button.full{width:100%;margin-top:5px}
 #photoViewport{position:absolute;left:36px;top:78px;width:292px;height:430px;overflow:hidden;z-index:2}
 #photo{position:absolute;left:0;top:0;width:292px;height:430px;object-fit:contain;cursor:grab;touch-action:none;transform-origin:center center;z-index:2}
 #photo.dragging{cursor:grabbing}
-#photoEditor{position:absolute;left:36px;top:78px;width:292px;height:430px;z-index:4;display:none;pointer-events:none;transform-origin:center center}
-#photoEditor.active{display:block}
+#photoEditor{position:absolute;left:36px;top:78px;width:292px;height:430px;z-index:4;display:none!important;visibility:hidden;pointer-events:none;transform-origin:center center} 
+#photoEditor.active{display:block!important;visibility:visible}
 #photoEditor .resizeBox{position:absolute;inset:0;border:1px dashed rgba(0,0,0,.42);pointer-events:none}
 .resizeHandle{position:absolute;width:14px;height:14px;border:2px solid #fff;background:#111;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:auto;touch-action:none;z-index:2}
 .resizeHandle.tl{left:-7px;top:-7px;cursor:nwse-resize}
@@ -38,6 +38,25 @@ button.full{width:100%;margin-top:5px}
 #photoEditor .resizeBox:after{left:50%;top:-1px;bottom:-1px;border-left:1px dashed rgba(0,0,0,.18)}
 #photoEditor .resizeBox:before{top:50%;left:-1px;right:-1px;border-top:1px dashed rgba(0,0,0,.18)}
 #visionLogo{cursor:grab}
+
+.batchBox{margin-top:16px;border:1px solid #d8e0e2;border-radius:12px;padding:13px;background:#f8fbfb}
+.batchTitle{font-size:14px;font-weight:800;color:#0b3b40;margin-bottom:5px}
+.batchDesc{font-size:12px;color:#667579;line-height:1.4;margin-bottom:10px}
+.batchDrop{display:block;border:2px dashed #9fb0b4;border-radius:11px;padding:18px 10px;text-align:center;cursor:pointer;background:#fff}
+.batchDrop:hover{border-color:#12a987;background:#fbfffe}
+.batchDrop b{display:block;margin-bottom:4px}.batchDrop span{font-size:11px;color:#7a888b}
+.batchList{margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:230px;overflow:auto}
+.batchItem{display:grid;grid-template-columns:42px 1fr auto;gap:8px;align-items:center;background:#fff;border:1px solid #e0e5e6;border-radius:9px;padding:6px 8px}
+.batchThumb{width:42px;height:48px;border-radius:6px;object-fit:cover;background:#edf1f2}
+.batchName{min-width:0}.batchNameInput{width:100%;height:34px;border:1px solid #d1d9db;border-radius:7px;padding:0 8px;font-size:12px}
+.batchMeta{font-size:10px;color:#7b898c;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.batchRemove{background:#f0f2f2;padding:7px 9px;font-size:11px}
+.batchOptions{display:flex;align-items:center;gap:7px;margin:10px 0;font-size:12px;color:#46575a}
+.batchOptions input{accent-color:#12a987}
+.batchClear{width:100%;margin-top:7px;background:#ededed;color:#333}
+.batchClear:hover{background:#e3e5e5}
+.batchProgress{min-height:18px;margin-top:8px;font-size:12px;color:#58696c;line-height:1.35}
+.batchProgress.ok{color:#08784f;font-weight:700}.batchProgress.error{color:#b42318;font-weight:700}
 </style>
 
 <style>
@@ -93,6 +112,17 @@ body{background:#eef1f3}
 
 @media(max-width:800px){.layout{grid-template-columns:1fr}.preview{min-height:650px}}
 </style>
+
+<style>
+.batchItem.active{border-color:#12a987;box-shadow:0 0 0 2px rgba(18,169,135,.12)}
+.batchReview{display:none;margin-top:10px;padding:11px;border:1px solid #cfe0dd;border-radius:10px;background:#fff}
+.batchReview.active{display:block}
+.batchReviewTop{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#0b3b40}
+.batchReviewButtons{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.batchReviewButtons button{font-size:12px;padding:10px 7px}
+.batchZip{width:100%;margin-top:8px;background:#0b3b40;color:#fff}
+.batchHint{font-size:11px;color:#667579;line-height:1.35;margin-top:7px}
+</style>
 </head>
 <body>
 <header class="topbar">
@@ -104,7 +134,7 @@ body{background:#eef1f3}
     </div>
   </div>
   <div class="brandRight">
-    <span class="tag">GSC Corporate Security • Brazil</span>
+    <span class="tag">Modelo fixo • Vision #1</span>
     <div class="brandDivider"></div>
     <img class="jtiLogo" src="jti_logo_white.png" alt="JTI">
   </div>
@@ -158,6 +188,33 @@ body{background:#eef1f3}
   <div class="editorBox">
     <div class="editorTitle">🖼️ Ajustar foto</div>
     <div class="note2">Você pode enviar JPG, PNG ou WEBP. Para fotos com fundo, use <b>✨ REMOVER FUNDO</b>; o resultado transparente entra automaticamente no crachá. Depois, <b>arraste a pessoa</b> para posicionar e <b>puxe qualquer canto ou lateral</b> para ajustar a área visível, como no Canva. A imagem não é esticada: a parte que sai da área de corte simplesmente fica oculta. Use <b>arrastar a pessoa</b> e os botões +/− para mudar a posição e o tamanho da foto. Os botões +/− continuam disponíveis para ajustes finos. O PNG exportado usa o mesmo enquadramento da prévia.</div>
+  </div>
+
+
+  <div class="batchBox">
+    <div class="batchTitle">📦 Gerar vários crachás</div>
+    <div class="batchDesc">Arraste várias fotos de uma vez. O sistema usa o <b>nome do arquivo como nome do colaborador</b>. Ex.: <b>João da Silva.jpg</b> → nome do crachá: <b>João da Silva</b>.</div>
+    <label class="batchDrop" id="batchDrop" for="batchFiles">
+      <b>📷 Clique ou arraste várias fotos aqui</b><span>JPG, PNG ou WEBP • você pode selecionar dezenas de fotos</span>
+    </label>
+    <input id="batchFiles" type="file" accept="image/jpeg,image/png,image/webp,image/*" multiple>
+    <div class="batchList" id="batchList"></div>
+    <div class="batchOptions" id="batchOptions" style="display:none">
+      <input id="batchRemoveBg" type="checkbox" checked>
+      <label for="batchRemoveBg">Remover fundo automaticamente</label>
+    </div>
+    <button class="primary" id="batchGenerate" type="button" disabled>INICIAR REVISÃO DOS CRACHÁS</button>
+    <button class="batchClear" id="batchClear" type="button" disabled>🗑️ LIMPAR LOTE / COMEÇAR NOVO</button>
+    <div class="batchReview" id="batchReview">
+      <div class="batchReviewTop"><span id="batchReviewTitle">Revisando 1 de 1</span><span id="batchReviewStatus">0 revisados</span></div>
+      <div class="batchReviewButtons">
+        <button class="secondary" id="batchPrev" type="button">← ANTERIOR</button>
+        <button class="secondary" id="batchNext" type="button">PRÓXIMO →</button>
+      </div>
+      <button class="batchZip" id="batchZip" type="button" disabled>📦 SALVAR TODOS EM ZIP</button>
+      <div class="batchHint">Ajuste a foto diretamente na prévia: arraste a pessoa, use +/− e os 8 puxadores de corte. O ajuste de cada crachá fica salvo antes de passar para o próximo.</div>
+    </div>
+    <div class="batchProgress" id="batchProgress" aria-live="polite"></div>
   </div>
 
   <div class="note"><b>Importante:</b> o Vision #1 continua sempre <b>na frente da caixa do nome</b>.</div>
@@ -231,6 +288,19 @@ const removeBgBtn=document.getElementById('removeBg');
 const bgStatus=document.getElementById('bgStatus');
 let selectedImageFile=null;
 
+// O editor de corte só aparece quando existe uma foto carregada.
+function hidePhotoEditor(){
+  photoEditor.classList.remove('active');
+  photoEditor.style.display='none';
+  photoEditor.style.visibility='hidden';
+}
+function showPhotoEditor(){
+  photoEditor.classList.add('active');
+  photoEditor.style.display='block';
+  photoEditor.style.visibility='visible';
+}
+hidePhotoEditor();
+
 function setBgStatus(message,type=''){
   bgStatus.textContent=message;
   bgStatus.className='bgStatus'+(type?' '+type:'');
@@ -241,7 +311,7 @@ function showPhotoSource(src, reset=true){
   photo.src=src;
   photo.style.display='block'; placeholder.style.display='none';
   if(reset){zoom=1; scaleX=1; scaleY=1; photoX=0; photoY=0; cropX=36; cropY=78; cropW=BASE_PHOTO_W; cropH=BASE_PHOTO_H;}
-  photoEditor.classList.add('active');
+  showPhotoEditor();
   applyPhotoTransform();
 }
 
@@ -329,7 +399,7 @@ drop.addEventListener('drop',e=>{
 
 document.getElementById('plus').onclick=()=>{zoom=Math.min(2,zoom+.1);applyPhotoTransform()};
 document.getElementById('minus').onclick=()=>{zoom=Math.max(.7,zoom-.1);applyPhotoTransform()};
-document.getElementById('reset').onclick=()=>{zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;cropX=36;cropY=78;cropW=BASE_PHOTO_W;cropH=BASE_PHOTO_H;applyPhotoTransform()};
+document.getElementById('reset').onclick=()=>{zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;cropX=36;cropY=78;cropW=BASE_PHOTO_W;cropH=BASE_PHOTO_H;if(imageLoaded)showPhotoEditor();else hidePhotoEditor();applyPhotoTransform()};
 
 function applyPhotoTransform(){
   const transform=`translate(${photoX}px,${photoY}px) scale(${zoom*scaleX},${zoom*scaleY})`;
@@ -541,7 +611,269 @@ document.getElementById('print').onclick=async()=>{
   }catch(e){alert('Não foi possível preparar a impressão: '+e.message)}
 };
 
-updateName(); updateVision(); applyPhotoTransform();
+// ==================== GERAÇÃO EM LOTE ====================
+const batchFilesInput=document.getElementById('batchFiles');
+const batchDrop=document.getElementById('batchDrop');
+const batchList=document.getElementById('batchList');
+const batchGenerate=document.getElementById('batchGenerate');
+const batchClear=document.getElementById('batchClear');
+const batchRestoreNames=document.getElementById('batchRestoreNames');
+const batchProgress=document.getElementById('batchProgress');
+const batchOptions=document.getElementById('batchOptions');
+const batchRemoveBg=document.getElementById('batchRemoveBg');
+const batchReview=document.getElementById('batchReview');
+const batchReviewTitle=document.getElementById('batchReviewTitle');
+const batchReviewStatus=document.getElementById('batchReviewStatus');
+const batchPrev=document.getElementById('batchPrev');
+const batchNext=document.getElementById('batchNext');
+const batchZip=document.getElementById('batchZip');
+let batchFiles=[];
+let batchReviewMode=false;
+let batchCurrentIndex=-1;
+
+function normalizePersonName(name){
+  const lowerWords=new Set(['da','de','do','das','dos','e']);
+  let n=(name||'').replace(/[_]+/g,' ').replace(/\s+/g,' ').trim().toLocaleLowerCase('pt-BR');
+  if(!n)return 'Colaborador';
+  return n.split(' ').map((word,index)=>{
+    if(index>0 && lowerWords.has(word)) return word;
+    return word.split(/([-'])/).map(part=>{
+      if(part==='-'||part==="'") return part;
+      return part ? part.charAt(0).toLocaleUpperCase('pt-BR')+part.slice(1) : part;
+    }).join('');
+  }).join(' ');
+}
+function batchNameFromFile(file){
+  // O nome do crachá nasce SEMPRE do nome original do arquivo.
+  // Guardamos também o nome original para impedir que um ajuste em outro item
+  // seja reutilizado acidentalmente nos demais crachás.
+  const raw=(file && file.name ? file.name : '').replace(/\.[^.]+$/,'').trim();
+  return normalizePersonName(raw);
+}
+function batchSafeName(name){
+  return (name.trim()||'cracha').replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,' ').slice(0,120);
+}
+function renderBatchList(){
+  batchList.innerHTML='';
+  batchFiles.forEach((item,index)=>{
+    const row=document.createElement('div');row.className='batchItem'+(batchReviewMode&&index===batchCurrentIndex?' active':'');
+    const thumb=document.createElement('img');thumb.className='batchThumb';thumb.src=item.url;thumb.alt='';
+    const mid=document.createElement('div');mid.className='batchName';
+    const input=document.createElement('input');input.className='batchNameInput';input.value=item.name;input.title='Nome que aparecerá no crachá';
+    input.addEventListener('input',()=>{item.name=input.value;if(batchReviewMode&&index===batchCurrentIndex)updateName();});
+    const meta=document.createElement('div');meta.className='batchMeta';
+    meta.textContent=item.file.name+(item.reviewed?' • ✓ revisado':'');
+    mid.append(input,meta);
+    const remove=document.createElement('button');remove.className='batchRemove';remove.type='button';remove.textContent='✕';remove.title='Remover';
+    remove.disabled=batchReviewMode;
+    remove.onclick=()=>{URL.revokeObjectURL(item.url);if(item.processedUrl)URL.revokeObjectURL(item.processedUrl);batchFiles.splice(index,1);if(batchCurrentIndex>=batchFiles.length)batchCurrentIndex=batchFiles.length-1;renderBatchList();updateBatchReviewUI();};
+    row.append(thumb,mid,remove);batchList.append(row);
+    if(batchReviewMode){row.style.cursor='pointer';row.onclick=(ev)=>{if(ev.target===input||ev.target===remove)return;loadBatchItem(index,true)}}
+  });
+  const has=batchFiles.length>0;
+  batchGenerate.disabled=!has || batchReviewMode;
+  batchClear.disabled=!has;
+  if(batchRestoreNames) batchRestoreNames.disabled=!has || batchReviewMode;
+  batchOptions.style.display=has?'flex':'none';
+  if(!has){batchReview.classList.remove('active');batchReviewMode=false;batchCurrentIndex=-1;}
+  updateBatchReviewUI();
+}
+function addBatchFiles(files){
+  const incoming=Array.from(files||[]).filter(f=>f.type && f.type.startsWith('image/'));
+  if(!incoming.length)return;
+  incoming.forEach(file=>{
+    const url=URL.createObjectURL(file);
+    const originalName=batchNameFromFile(file);
+    batchFiles.push({
+      file,
+      originalName,
+      name:originalName,
+      url,
+      processedUrl:null,
+      state:null,
+      reviewed:false
+    });
+  });
+  renderBatchList();
+  batchProgress.className='batchProgress';
+  batchProgress.textContent=`✓ ${batchFiles.length} foto(s) carregada(s). Clique em “Iniciar revisão dos crachás”.`;
+}
+batchFilesInput.addEventListener('change',()=>{addBatchFiles(batchFilesInput.files);batchFilesInput.value='';});
+batchDrop.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();batchDrop.style.borderColor='#12a987';});
+batchDrop.addEventListener('dragleave',()=>batchDrop.style.borderColor='#9fb0b4');
+batchDrop.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();batchDrop.style.borderColor='#9fb0b4';addBatchFiles(e.dataTransfer.files);});
+
+function waitImage(img,src){
+  return new Promise((resolve,reject)=>{
+    let settled=false;
+    const done=()=>{if(settled)return;settled=true;cleanup();resolve()};
+    const fail=()=>{if(settled)return;settled=true;cleanup();reject(new Error('Não foi possível carregar a imagem.'))};
+    const cleanup=()=>{img.removeEventListener('load',done);img.removeEventListener('error',fail)};
+    img.addEventListener('load',done);img.addEventListener('error',fail);img.src=src;
+    if(img.complete && img.naturalWidth)done();
+  });
+}
+async function removeBgForBatch(file){
+  const removeBackground=await getLocalBackgroundRemover();
+  const config={model:'isnet_fp16',device:'cpu',output:{format:'image/png',quality:1},progress:(key,current,total)=>{
+    if(total&&batchReviewMode){const pct=Math.round((current/total)*100);if(key&&key.startsWith('fetch:'))batchProgress.textContent='Preparando IA… '+pct+'%';else if(key&&key.startsWith('compute:'))batchProgress.textContent='Removendo fundo… '+pct+'%';}
+  }};
+  try{return await removeBackground(file,config)}catch(e){
+    return await removeBackground(file,{model:'isnet_fp16',output:{format:'image/png',quality:1}});
+  }
+}
+function saveBatchState(){
+  if(!batchReviewMode||batchCurrentIndex<0||!batchFiles[batchCurrentIndex])return;
+  const item=batchFiles[batchCurrentIndex];
+  item.name=nameInput.value.trim()||item.name||'Colaborador';
+  item.state={zoom,scaleX,scaleY,photoX,photoY,cropX,cropY,cropW,cropH};
+  item.reviewed=true;
+}
+async function loadBatchItem(index,saveCurrent=true){
+  if(index<0||index>=batchFiles.length)return;
+  if(saveCurrent)saveBatchState();
+  batchCurrentIndex=index;
+  const item=batchFiles[index];
+  batchReviewMode=true;
+  batchReview.classList.add('active');
+  batchGenerate.disabled=true;
+  batchFilesInput.disabled=true;
+  batchDrop.style.pointerEvents='none';
+  batchProgress.className='batchProgress';
+  try{
+    if(batchRemoveBg.checked && !item.processedUrl){
+      batchProgress.textContent=`Preparando ${index+1} de ${batchFiles.length}: ${item.name}`;
+      const blob=await removeBgForBatch(item.file);
+      if(!blob||!blob.size)throw new Error('A remoção de fundo retornou uma imagem vazia.');
+      item.processedUrl=URL.createObjectURL(blob);
+    }
+    const src=batchRemoveBg.checked ? item.processedUrl : item.url;
+    await waitImage(photo,src);
+    photo.style.display='block';placeholder.style.display='none';
+    imageLoaded=true;selectedImageFile=item.file;
+    if(item.state){
+      zoom=item.state.zoom;scaleX=item.state.scaleX;scaleY=item.state.scaleY;photoX=item.state.photoX;photoY=item.state.photoY;
+      cropX=item.state.cropX;cropY=item.state.cropY;cropW=item.state.cropW;cropH=item.state.cropH;
+    }else{
+      zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;cropX=36;cropY=78;cropW=BASE_PHOTO_W;cropH=BASE_PHOTO_H;
+    }
+    showPhotoEditor();applyPhotoTransform();
+    nameInput.value=item.name;updateName();
+    updateBatchReviewUI();renderBatchList();
+    batchProgress.className='batchProgress';
+    batchProgress.textContent=`Foto ${index+1} de ${batchFiles.length} carregada. Ajuste na prévia e avance quando estiver pronta.`;
+  }catch(e){
+    console.error(e);batchProgress.className='batchProgress error';batchProgress.textContent='Erro ao preparar esta foto: '+(e?.message||'não foi possível processar.');
+  }finally{
+    batchFilesInput.disabled=false;
+    batchDrop.style.pointerEvents='auto';
+  }
+}
+function updateBatchReviewUI(){
+  if(!batchReviewMode){batchReview.classList.remove('active');return;}
+  const reviewed=batchFiles.filter(x=>x.reviewed).length;
+  batchReviewTitle.textContent=`Revisando ${Math.max(1,batchCurrentIndex+1)} de ${batchFiles.length}`;
+  batchReviewStatus.textContent=`${reviewed} revisado(s)`;
+  batchPrev.disabled=batchCurrentIndex<=0;
+  batchNext.disabled=batchCurrentIndex<0||batchCurrentIndex>=batchFiles.length-1;
+  const allReviewed=batchFiles.length>0&&batchFiles.every(x=>x.reviewed);
+  batchZip.disabled=!allReviewed;
+  batchZip.textContent=allReviewed?'📦 SALVAR TODOS EM ZIP':'📦 REVISE TODOS PARA SALVAR';
+  if(batchReviewMode)batchGenerate.textContent='REVISÃO EM ANDAMENTO';
+}
+
+batchGenerate.addEventListener('click',async()=>{
+  if(!batchFiles.length)return;
+  batchReviewMode=true;
+  batchCurrentIndex=-1;
+  batchFiles.forEach(x=>x.reviewed=false);
+  updateBatchReviewUI();
+  await loadBatchItem(0,false);
+});
+batchPrev.addEventListener('click',async()=>{if(batchCurrentIndex>0)await loadBatchItem(batchCurrentIndex-1,true)});
+batchNext.addEventListener('click',async()=>{if(batchCurrentIndex<batchFiles.length-1)await loadBatchItem(batchCurrentIndex+1,true)});
+
+batchZip.addEventListener('click',async()=>{
+  if(!batchFiles.length||!batchFiles.every(x=>x.reviewed))return;
+  saveBatchState();
+  batchZip.disabled=true;batchPrev.disabled=true;batchNext.disabled=true;batchProgress.className='batchProgress';
+  try{
+    const JSZip=await (async()=>{const mod=await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');return mod.default||mod})();
+    const archive=new JSZip();const usedNames={};
+    for(let i=0;i<batchFiles.length;i++){
+      const item=batchFiles[i];
+      batchProgress.textContent=`Salvando ${i+1} de ${batchFiles.length} — ${item.name}`;
+      const originalIndex=batchCurrentIndex;
+      await loadBatchItem(i,false);
+      // loadBatchItem restores this item's saved adjustment. Generate using exactly that state.
+      const canvas=await canvasBadge();
+      let base=batchSafeName(item.name)||`cracha_${i+1}`;
+      const key=base.toLowerCase();usedNames[key]=(usedNames[key]||0)+1;if(usedNames[key]>1)base+=` (${usedNames[key]})`;
+      const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Falha ao criar PNG.')),'image/png'));
+      archive.file(base+'.png',blob);
+      batchCurrentIndex=originalIndex;
+    }
+    batchProgress.textContent=`Finalizando ZIP com ${batchFiles.length} crachá(s)…`;
+    const zipBlob=await archive.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+    const url=URL.createObjectURL(zipBlob);const a=document.createElement('a');a.href=url;a.download=`Crachas_${new Date().toISOString().slice(0,10)}.zip`;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    batchProgress.className='batchProgress ok';batchProgress.textContent=`✓ ${batchFiles.length} crachá(s) revisado(s) e salvo(s) em ZIP.`;
+  }catch(e){
+    console.error(e);batchProgress.className='batchProgress error';batchProgress.textContent='Erro ao criar o ZIP: '+(e?.message||'não foi possível concluir.');
+  }finally{
+    updateBatchReviewUI();batchZip.disabled=!batchFiles.every(x=>x.reviewed);
+  }
+});
+
+if(batchRestoreNames){
+  batchRestoreNames.addEventListener('click',()=>{
+    if(batchReviewMode || !batchFiles.length)return;
+    batchFiles.forEach(item=>{
+      item.name=item.originalName || batchNameFromFile(item.file);
+      item.reviewed=false;
+      item.state=null;
+    });
+    renderBatchList();
+    batchProgress.className='batchProgress';
+    batchProgress.textContent='✓ Nomes recuperados diretamente dos arquivos. Clique em “INICIAR REVISÃO DOS CRACHÁS”.';
+  });
+}
+async function clearBatch(){
+  if(!batchFiles.length)return;
+  const ok=confirm('Tem certeza que deseja limpar todas as fotos deste lote e começar novamente?');
+  if(!ok)return;
+  batchFiles.forEach(item=>{
+    try{URL.revokeObjectURL(item.url)}catch(_){ }
+    if(item.processedUrl){try{URL.revokeObjectURL(item.processedUrl)}catch(_){ }}
+  });
+  batchFiles=[];
+  batchReviewMode=false;
+  batchCurrentIndex=-1;
+  batchList.innerHTML='';
+  batchProgress.className='batchProgress';
+  batchProgress.textContent='Lote limpo. Você pode arrastar novas fotos para começar novamente.';
+  batchReview.classList.remove('active');
+  batchGenerate.textContent='INICIAR REVISÃO DOS CRACHÁS';
+  batchGenerate.disabled=true;
+  batchClear.disabled=true;
+  batchOptions.style.display='none';
+  batchFilesInput.disabled=false;
+  batchDrop.style.pointerEvents='auto';
+  imageLoaded=false;
+  selectedImageFile=null;
+  photo.src='';
+  photo.style.display='none';
+  placeholder.style.display='flex';
+  hidePhotoEditor();
+  zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;cropX=36;cropY=78;cropW=BASE_PHOTO_W;cropH=BASE_PHOTO_H;
+  nameInput.value='Mateus Fernando Schwengber';
+  updateName();
+  applyPhotoTransform();
+  updateBatchReviewUI();
+}
+batchClear.addEventListener('click',clearBatch);
+
+updateName(); updateVision(); applyPhotoTransform(); if(!imageLoaded)hidePhotoEditor();
 </script>
 </body>
 </html>
