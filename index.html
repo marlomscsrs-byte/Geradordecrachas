@@ -21,12 +21,12 @@
 button.full{width:100%;margin-top:5px}
 .note2{font-size:12px;color:#666;line-height:1.4}
 #photoViewport{position:absolute;left:36px;top:78px;width:292px;height:430px;overflow:hidden;z-index:2}
-#photo{position:absolute;left:0;top:0;width:292px;height:430px;object-fit:contain;cursor:grab;touch-action:none;transform-origin:center center;z-index:2}
+#photo{position:absolute;left:0;top:0;width:292px;height:430px;object-fit:cover;object-position:center top;cursor:grab;touch-action:none;transform-origin:center center;z-index:2}
 #photo.dragging{cursor:grabbing}
 #photoEditor{position:absolute;left:36px;top:78px;width:292px;height:430px;z-index:30;display:none!important;visibility:hidden;pointer-events:none;transform-origin:center center} 
 #photoEditor.active{display:block!important;visibility:visible}
-#photoEditor .resizeBox{position:absolute;inset:0;border:1px dashed rgba(0,0,0,.42);pointer-events:none}
-.resizeHandle{position:absolute;width:14px;height:14px;border:2px solid #fff;background:#111;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:auto;touch-action:none;z-index:2}
+#photoEditor .resizeBox{position:absolute;inset:0;border:2px solid #8b5cf6;box-shadow:0 0 0 1px rgba(255,255,255,.9) inset;pointer-events:none}
+.resizeHandle{position:absolute;width:14px;height:14px;border:2px solid #fff;background:#8b5cf6;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,.35);pointer-events:auto;touch-action:none;z-index:2}
 .resizeHandle.tl{left:-7px;top:-7px;cursor:nwse-resize}
 .resizeHandle.tr{right:-7px;top:-7px;cursor:nesw-resize}
 .resizeHandle.bl{left:-7px;bottom:-7px;cursor:nesw-resize}
@@ -469,13 +469,48 @@ function setBgStatus(message,type=''){
   bgStatus.className='bgStatus'+(type?' '+type:'');
 }
 
+function standardizePhotoFrame(){
+  if(!photo.naturalWidth || !photo.naturalHeight)return;
+  const m=getModel();
+  cropX=m.photoX; cropY=m.photoY; cropW=m.photoW; cropH=m.photoH;
+  BASE_PHOTO_W=m.photoW; BASE_PHOTO_H=m.photoH;
+
+  // Padrão visual do crachá: a foto sempre PREENCHE toda a janela,
+  // sem faixas vazias, com enquadramento vertical e a parte superior
+  // da pessoa priorizada. Isso deixa fotos diferentes visualmente
+  // muito mais próximas do modelo oficial.
+  const fit=Math.max(cropW/photo.naturalWidth,cropH/photo.naturalHeight);
+  const renderedW=photo.naturalWidth*fit;
+  const renderedH=photo.naturalHeight*fit;
+  const extraX=renderedW-cropW;
+  const extraY=renderedH-cropH;
+
+  zoom=1; scaleX=1; scaleY=1;
+  photoX=-extraX/2;
+  // Mantém o topo da foto mais visível, como no modelo de referência.
+  photoY=-Math.max(0,extraY*0.08);
+  applyPhotoTransform();
+}
+
 function showPhotoSource(src, reset=true){
-  photo.onload=()=>{imageLoaded=true};
+  photo.onload=()=>{
+    imageLoaded=true;
+    if(reset) standardizePhotoFrame();
+    else applyPhotoTransform();
+  };
   photo.src=src;
   photo.style.display='block'; placeholder.style.display='none';
-  if(reset){zoom=1; scaleX=1; scaleY=1; photoX=0; photoY=0; {const m=getModel(); cropX=m.photoX; cropY=m.photoY; cropW=m.photoW; cropH=m.photoH; BASE_PHOTO_W=m.photoW; BASE_PHOTO_H=m.photoH;}}
+  if(reset){
+    zoom=1; scaleX=1; scaleY=1; photoX=0; photoY=0;
+    const m=getModel();
+    cropX=m.photoX; cropY=m.photoY; cropW=m.photoW; cropH=m.photoH;
+    BASE_PHOTO_W=m.photoW; BASE_PHOTO_H=m.photoH;
+  }
   showPhotoEditor();
-  applyPhotoTransform();
+  if(photo.complete && photo.naturalWidth){
+    imageLoaded=true;
+    if(reset) standardizePhotoFrame(); else applyPhotoTransform();
+  }
 }
 
 function loadOriginalFile(f){
@@ -568,68 +603,105 @@ drop.addEventListener('drop',e=>{
 
 document.getElementById('plus').onclick=()=>{zoom=Math.min(2,zoom+.1);applyPhotoTransform()};
 document.getElementById('minus').onclick=()=>{zoom=Math.max(.7,zoom-.1);applyPhotoTransform()};
-document.getElementById('reset').onclick=()=>{zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;const m=getModel();cropX=m.photoX;cropY=m.photoY;cropW=m.photoW;cropH=m.photoH;if(imageLoaded)showPhotoEditor();else hidePhotoEditor();applyPhotoTransform()};
+document.getElementById('reset').onclick=()=>{zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;const m=getModel();cropX=m.photoX;cropY=m.photoY;cropW=m.photoW;cropH=m.photoH;if(imageLoaded)standardizePhotoFrame();else hidePhotoEditor();applyPhotoTransform()};
 
 function applyPhotoTransform(){
   const transform=`translate(${photoX}px,${photoY}px) scale(${zoom*scaleX},${zoom*scaleY})`;
   photo.style.transform=transform;
-  // A foto não acompanha mais as alças. O viewport é a área de corte.
+
+  // A área de corte do crachá é FIXA. A caixa de edição acompanha o tamanho
+  // visual da foto, como no Canva. Redimensionar as alças altera a foto,
+  // nunca a janela de corte do crachá.
   const viewport=document.getElementById('photoViewport');
-  viewport.style.left=cropX+'px';
-  viewport.style.top=cropY+'px';
-  viewport.style.width=cropW+'px';
-  viewport.style.height=cropH+'px';
-  photoEditor.style.left=cropX+'px';
-  photoEditor.style.top=cropY+'px';
-  photoEditor.style.width=cropW+'px';
-  photoEditor.style.height=cropH+'px';
-}
-
-// Redimensionamento no estilo "cortar" do Canva.
-// As alças alteram a janela visível (crop). A imagem continua com a mesma escala/posição.
-let resizing=false, resizeStartX=0, resizeStartY=0;
-let resizeStartCropX=36, resizeStartCropY=78, resizeStartCropW=292, resizeStartCropH=430, resizeDir='';
-const MIN_CROP_W=60, MIN_CROP_H=60;
-const MIN_CROP_Y=20;
-
-function clampCrop(x,y,w,h){
   const m=getModel();
-  const minX=m.photoX;
-  const minY=Math.max(MIN_CROP_Y,m.photoY-60);
-  const maxX=m.photoX+BASE_PHOTO_W;
-  const maxY=m.photoY+BASE_PHOTO_H;
-  w=Math.max(MIN_CROP_W,Math.min(BASE_PHOTO_W,w));
-  h=Math.max(MIN_CROP_H,Math.min(BASE_PHOTO_H,h));
-  x=Math.max(minX,Math.min(maxX-w,x));
-  y=Math.max(minY,Math.min(maxY-h,y));
-  return {x,y,w,h};
+  viewport.style.left=m.photoX+'px';
+  viewport.style.top=m.photoY+'px';
+  viewport.style.width=m.photoW+'px';
+  viewport.style.height=m.photoH+'px';
+
+  const visualW=BASE_PHOTO_W*zoom*scaleX;
+  const visualH=BASE_PHOTO_H*zoom*scaleY;
+  const visualLeft=m.photoX + photoX + (BASE_PHOTO_W-visualW)/2;
+  const visualTop=m.photoY + photoY + (BASE_PHOTO_H-visualH)/2;
+  photoEditor.style.left=visualLeft+'px';
+  photoEditor.style.top=visualTop+'px';
+  photoEditor.style.width=visualW+'px';
+  photoEditor.style.height=visualH+'px';
 }
+
+// Redimensionamento estilo Canva: as alças alteram a escala da FOTO.
+// A janela de corte do crachá permanece fixa em 292x430.
+let resizing=false, resizeStartX=0, resizeStartY=0, resizeStartDir='';
+let resizeStartScaleX=1, resizeStartScaleY=1, resizeStartPhotoX=0, resizeStartPhotoY=0;
+const MIN_PHOTO_SCALE=.25, MAX_PHOTO_SCALE=3;
 
 function beginResize(e,handle){
   if(!imageLoaded)return;
   e.preventDefault(); e.stopPropagation();
   resizing=true;
   resizeStartX=e.clientX; resizeStartY=e.clientY;
-  resizeStartCropX=cropX; resizeStartCropY=cropY;
-  resizeStartCropW=cropW; resizeStartCropH=cropH;
-  resizeDir=handle.dataset.dir||'br';
+  resizeStartScaleX=zoom*scaleX;
+  resizeStartScaleY=zoom*scaleY;
+  resizeStartPhotoX=photoX;
+  resizeStartPhotoY=photoY;
+  resizeStartDir=handle.dataset.dir||'br';
   try{handle.setPointerCapture(e.pointerId)}catch(_){ }
 }
+
 function moveResize(e){
   if(!resizing)return;
   const rect=badge.getBoundingClientRect();
-  const m=getModel(); const sx=m.W/rect.width, sy=m.H/rect.height;
+  const m=getModel();
+  const sx=m.W/rect.width, sy=m.H/rect.height;
   const dx=(e.clientX-resizeStartX)*sx;
   const dy=(e.clientY-resizeStartY)*sy;
-  let x=resizeStartCropX, y=resizeStartCropY;
-  let r=resizeStartCropX+resizeStartCropW, b=resizeStartCropY+resizeStartCropH;
-  const d=resizeDir;
-  if(d.includes('l')) x=Math.min(resizeStartCropX+dx,r-MIN_CROP_W);
-  if(d.includes('r')) r=Math.max(resizeStartCropX+MIN_CROP_W,resizeStartCropX+resizeStartCropW+dx);
-  if(d.includes('t')) y=Math.min(resizeStartCropY+dy,b-MIN_CROP_H);
-  if(d.includes('b')) b=Math.max(resizeStartCropY+MIN_CROP_H,resizeStartCropY+resizeStartCropH+dy);
-  const c=clampCrop(x,y,r-x,b-y);
-  cropX=c.x; cropY=c.y; cropW=c.w; cropH=c.h;
+  const d=resizeStartDir;
+
+  let newSX=resizeStartScaleX;
+  let newSY=resizeStartScaleY;
+
+  // Escala proporcional para os quatro cantos, como no Canva.
+  if(d==='tl'||d==='tr'||d==='bl'||d==='br'){
+    const horizontal = (d.includes('l') ? -dx : dx);
+    const vertical = (d.includes('t') ? -dy : dy);
+    const delta = Math.abs(horizontal) > Math.abs(vertical) ? horizontal : vertical;
+    const base=Math.max(BASE_PHOTO_W,BASE_PHOTO_H);
+    const factor=1 + (delta/base);
+    const uniform=Math.max(MIN_PHOTO_SCALE,Math.min(MAX_PHOTO_SCALE,resizeStartScaleX*factor));
+    newSX=uniform;
+    newSY=uniform;
+
+    // Mantém o canto oposto no lugar.
+    const dw=BASE_PHOTO_W*(newSX-resizeStartScaleX);
+    const dh=BASE_PHOTO_H*(newSY-resizeStartScaleY);
+    if(d.includes('l')) photoX=resizeStartPhotoX + dw/2;
+    else photoX=resizeStartPhotoX - dw/2;
+    if(d.includes('t')) photoY=resizeStartPhotoY + dh/2;
+    else photoY=resizeStartPhotoY - dh/2;
+  }else{
+    // Alças centrais: redimensionam somente o eixo correspondente.
+    if(d==='tm'||d==='bm'){
+      const delta=(d==='tm' ? -dy : dy);
+      const newH=Math.max(BASE_PHOTO_H*MIN_PHOTO_SCALE,
+        Math.min(BASE_PHOTO_H*MAX_PHOTO_SCALE,BASE_PHOTO_H*resizeStartScaleY+delta));
+      newSY=newH/BASE_PHOTO_H;
+      const dh=newH-BASE_PHOTO_H*resizeStartScaleY;
+      photoY=d==='tm' ? resizeStartPhotoY+dh/2 : resizeStartPhotoY-dh/2;
+    }
+    if(d==='ml'||d==='mr'){
+      const delta=(d==='ml' ? -dx : dx);
+      const newW=Math.max(BASE_PHOTO_W*MIN_PHOTO_SCALE,
+        Math.min(BASE_PHOTO_W*MAX_PHOTO_SCALE,BASE_PHOTO_W*resizeStartScaleX+delta));
+      newSX=newW/BASE_PHOTO_W;
+      const dw=newW-BASE_PHOTO_W*resizeStartScaleX;
+      photoX=d==='ml' ? resizeStartPhotoX+dw/2 : resizeStartPhotoX-dw/2;
+    }
+  }
+
+  // Mantém zoom separado para que os botões +/- continuem funcionando.
+  zoom=1;
+  scaleX=newSX;
+  scaleY=newSY;
   applyPhotoTransform();
 }
 function endResize(){resizing=false;}
@@ -741,15 +813,14 @@ function canvasBadge(){
       const nw=photo.naturalWidth, nh=photo.naturalHeight;
       const imgBaseH=m.photoH;
       const imgBaseY=m.photoY;
-      const fit=Math.min(m.photoW/nw,imgBaseH/nh);
+      const fit=Math.max(m.photoW/nw,imgBaseH/nh);
       const baseW=nw*fit, baseH=nh*fit;
       const sx=zoom*scaleX, sy=zoom*scaleY;
       const dw=baseW*sx, dh=baseH*sy;
-      const cx=m.photoX+m.photoW/2, cy=imgBaseY+imgBaseH/2;
       const baseLeft=m.photoX+(m.photoW-baseW)/2;
-      const baseTop=imgBaseY+(imgBaseH-baseH)/2;
-      const drawX=cx+(baseLeft-cx)*sx+photoX;
-      const drawY=cy+(baseTop-cy)*sy+photoY;
+      const baseTop=imgBaseY;
+      const drawX=baseLeft + (baseW-dw)/2 + photoX;
+      const drawY=baseTop + (baseH-dh)/2 + photoY;
 
       // Exatamente a mesma janela de corte mostrada na prévia.
       ctx.save();
@@ -1059,7 +1130,10 @@ async function loadBatchItem(index,saveCurrent=true){
       zoom=item.state.zoom;scaleX=item.state.scaleX;scaleY=item.state.scaleY;photoX=item.state.photoX;photoY=item.state.photoY;
       cropX=item.state.cropX;cropY=item.state.cropY;cropW=item.state.cropW;cropH=item.state.cropH;
     }else{
-      zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;const mm=getModel(); cropX=mm.photoX;cropY=mm.photoY;cropW=mm.photoW;cropH=mm.photoH;
+      zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;
+      const mm=getModel(); cropX=mm.photoX;cropY=mm.photoY;cropW=mm.photoW;cropH=mm.photoH;
+      BASE_PHOTO_W=mm.photoW; BASE_PHOTO_H=mm.photoH;
+      standardizePhotoFrame();
     }
     showPhotoEditor();applyPhotoTransform();
     nameInput.value=item.name; if(currentRmcType==='THIRD') companyInput.value=item.company||''; updateName();
