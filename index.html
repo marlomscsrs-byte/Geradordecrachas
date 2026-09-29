@@ -493,9 +493,12 @@ function standardizePhotoFrame(){
   const extraY=renderedH-cropH;
 
   zoom=1; scaleX=1; scaleY=1;
-  photoX=-extraX/2;
-  // Mantém o topo da foto mais visível, como no modelo de referência.
-  photoY=-Math.max(0,extraY*0.08);
+  // A imagem já usa object-fit: cover dentro da janela fixa do crachá.
+  // Portanto NÃO devemos aplicar aqui um segundo deslocamento baseado
+  // na proporção da imagem. Esse deslocamento fazia a caixa Canva nascer
+  // para fora do crachá em fotos verticais/horizontais.
+  photoX=0;
+  photoY=0;
   applyPhotoTransform();
 }
 
