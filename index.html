@@ -21,7 +21,7 @@
 button.full{width:100%;margin-top:5px}
 .note2{font-size:12px;color:#666;line-height:1.4}
 #photoViewport{position:absolute;left:36px;top:78px;width:292px;height:430px;overflow:hidden;z-index:2}
-#photo{position:absolute;left:0;top:0;width:292px;height:430px;object-fit:cover;object-position:center top;cursor:grab;touch-action:none;transform-origin:center center;z-index:2}
+#photo{position:absolute;left:0;top:0;width:292px;height:430px;object-fit:contain;cursor:grab;touch-action:none;transform-origin:center center;z-index:2}
 #photo.dragging{cursor:grabbing}
 #photoEditor{position:absolute;left:36px;top:78px;width:292px;height:430px;z-index:30;display:none!important;visibility:hidden;pointer-events:none;transform-origin:center center} 
 #photoEditor.active{display:block!important;visibility:visible}
@@ -469,48 +469,13 @@ function setBgStatus(message,type=''){
   bgStatus.className='bgStatus'+(type?' '+type:'');
 }
 
-function standardizePhotoFrame(){
-  if(!photo.naturalWidth || !photo.naturalHeight)return;
-  const m=getModel();
-  cropX=m.photoX; cropY=m.photoY; cropW=m.photoW; cropH=m.photoH;
-  BASE_PHOTO_W=m.photoW; BASE_PHOTO_H=m.photoH;
-
-  // Padrão visual do crachá: a foto sempre PREENCHE toda a janela,
-  // sem faixas vazias, com enquadramento vertical e a parte superior
-  // da pessoa priorizada. Isso deixa fotos diferentes visualmente
-  // muito mais próximas do modelo oficial.
-  const fit=Math.max(cropW/photo.naturalWidth,cropH/photo.naturalHeight);
-  const renderedW=photo.naturalWidth*fit;
-  const renderedH=photo.naturalHeight*fit;
-  const extraX=renderedW-cropW;
-  const extraY=renderedH-cropH;
-
-  zoom=1; scaleX=1; scaleY=1;
-  photoX=-extraX/2;
-  // Mantém o topo da foto mais visível, como no modelo de referência.
-  photoY=-Math.max(0,extraY*0.08);
-  applyPhotoTransform();
-}
-
 function showPhotoSource(src, reset=true){
-  photo.onload=()=>{
-    imageLoaded=true;
-    if(reset) standardizePhotoFrame();
-    else applyPhotoTransform();
-  };
+  photo.onload=()=>{imageLoaded=true};
   photo.src=src;
   photo.style.display='block'; placeholder.style.display='none';
-  if(reset){
-    zoom=1; scaleX=1; scaleY=1; photoX=0; photoY=0;
-    const m=getModel();
-    cropX=m.photoX; cropY=m.photoY; cropW=m.photoW; cropH=m.photoH;
-    BASE_PHOTO_W=m.photoW; BASE_PHOTO_H=m.photoH;
-  }
+  if(reset){zoom=1; scaleX=1; scaleY=1; photoX=0; photoY=0; {const m=getModel(); cropX=m.photoX; cropY=m.photoY; cropW=m.photoW; cropH=m.photoH; BASE_PHOTO_W=m.photoW; BASE_PHOTO_H=m.photoH;}}
   showPhotoEditor();
-  if(photo.complete && photo.naturalWidth){
-    imageLoaded=true;
-    if(reset) standardizePhotoFrame(); else applyPhotoTransform();
-  }
+  applyPhotoTransform();
 }
 
 function loadOriginalFile(f){
@@ -776,14 +741,15 @@ function canvasBadge(){
       const nw=photo.naturalWidth, nh=photo.naturalHeight;
       const imgBaseH=m.photoH;
       const imgBaseY=m.photoY;
-      const fit=Math.max(m.photoW/nw,imgBaseH/nh);
+      const fit=Math.min(m.photoW/nw,imgBaseH/nh);
       const baseW=nw*fit, baseH=nh*fit;
       const sx=zoom*scaleX, sy=zoom*scaleY;
       const dw=baseW*sx, dh=baseH*sy;
+      const cx=m.photoX+m.photoW/2, cy=imgBaseY+imgBaseH/2;
       const baseLeft=m.photoX+(m.photoW-baseW)/2;
-      const baseTop=imgBaseY;
-      const drawX=baseLeft + (baseW-dw)/2 + photoX;
-      const drawY=baseTop + (baseH-dh)/2 + photoY;
+      const baseTop=imgBaseY+(imgBaseH-baseH)/2;
+      const drawX=cx+(baseLeft-cx)*sx+photoX;
+      const drawY=cy+(baseTop-cy)*sy+photoY;
 
       // Exatamente a mesma janela de corte mostrada na prévia.
       ctx.save();
@@ -1093,10 +1059,7 @@ async function loadBatchItem(index,saveCurrent=true){
       zoom=item.state.zoom;scaleX=item.state.scaleX;scaleY=item.state.scaleY;photoX=item.state.photoX;photoY=item.state.photoY;
       cropX=item.state.cropX;cropY=item.state.cropY;cropW=item.state.cropW;cropH=item.state.cropH;
     }else{
-      zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;
-      const mm=getModel(); cropX=mm.photoX;cropY=mm.photoY;cropW=mm.photoW;cropH=mm.photoH;
-      BASE_PHOTO_W=mm.photoW; BASE_PHOTO_H=mm.photoH;
-      standardizePhotoFrame();
+      zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;const mm=getModel(); cropX=mm.photoX;cropY=mm.photoY;cropW=mm.photoW;cropH=mm.photoH;
     }
     showPhotoEditor();applyPhotoTransform();
     nameInput.value=item.name; if(currentRmcType==='THIRD') companyInput.value=item.company||''; updateName();
