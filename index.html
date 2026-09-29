@@ -21,6 +21,8 @@
 button.full{width:100%;margin-top:5px}
 .note2{font-size:12px;color:#666;line-height:1.4}
 #photoViewport{position:absolute;left:36px;top:78px;width:292px;height:430px;overflow:hidden;z-index:2}
+/* Durante a edição, como no Canva, a foto pode ultrapassar a área de corte. O corte real continua sendo aplicado apenas na exportação. */
+#badge:has(#photoEditor.active) #photoViewport{overflow:visible}
 #photo{position:absolute;left:0;top:0;width:292px;height:430px;object-fit:cover;object-position:center top;cursor:grab;touch-action:none;transform-origin:center center;z-index:2}
 #photo.dragging{cursor:grabbing}
 #photoEditor{position:absolute;left:36px;top:78px;width:292px;height:430px;z-index:30;display:none!important;visibility:hidden;pointer-events:none;transform-origin:center center} 
@@ -123,7 +125,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .photo-back{position:absolute;left:36px;top:140px;width:292px;height:328px;background:#fff;border-radius:17px 17px 0 0;z-index:1}
 .photo-placeholder{position:absolute;left:36px;top:78px;width:292px;height:430px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:13px;font-weight:700;z-index:2}
 .namebox{position:absolute;left:73px;top:396px;width:280px;height:94px;background:#fff;border-radius:17px;z-index:5;padding:7px 15px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;box-sizing:border-box;overflow:hidden}
-#name{font-family:"Cambay","CambayLocal",Arial,sans-serif;font-weight:700;font-size:31px;line-height:.9;letter-spacing:-1.2px;max-width:250px}
+#name{font-family:"Cambay","CambayLocal",Arial,sans-serif;font-weight:700;font-size:31px;line-height:.9;letter-spacing:-1.2px;width:250px;max-width:250px;white-space:normal;overflow-wrap:break-word;word-break:normal;box-sizing:border-box}
 #visionLogo{position:absolute;left:182px;top:476px;width:184px;height:51px;object-fit:contain;z-index:20;pointer-events:none}
 
 /* Identidade visual Corporate Security / JTI */
@@ -420,20 +422,25 @@ let BASE_PHOTO_W=292, BASE_PHOTO_H=430;
 let cropX=36, cropY=78, cropW=292, cropH=430;
 
 function fitName(){
-  // O preview e o PNG usam a mesma regra: no máximo 2 linhas dentro da caixa.
-  // Reduzimos a fonte até que TODAS as palavras caibam nas duas linhas, evitando
-  // que a terceira linha seja simplesmente cortada na exportação.
+  // O nome precisa caber visualmente na caixa branca e nunca pode ser cortado.
+  // Usamos a largura REAL disponível no elemento, reduzindo a fonte até que
+  // o conteúdo caiba em no máximo duas linhas.
   const text=(nameEl.textContent||'Nome do colaborador').trim();
-  const c=document.createElement('canvas');
-  const ctx=c.getContext('2d');
-  const spacing=-1.2;
+  nameEl.style.width='250px';
+  nameEl.style.maxWidth='250px';
+  nameEl.style.whiteSpace='normal';
+  nameEl.style.overflowWrap='break-word';
+  nameEl.style.wordBreak='normal';
+
   let size=31;
   while(size>=14){
-    ctx.font='700 '+size+'px Cambay, Arial, sans-serif';
-    const lines=wrap(ctx,text,250,spacing);
-    if(lines.length<=2){
-      nameEl.style.fontSize=size+'px';
-      nameEl.style.lineHeight='.9';
+    nameEl.style.fontSize=size+'px';
+    nameEl.style.lineHeight='.9';
+    // Força o navegador a recalcular a quebra antes de medir.
+    void nameEl.offsetHeight;
+    const lineHeight=size*.9;
+    const maxHeight=lineHeight*2+2;
+    if(nameEl.scrollHeight<=maxHeight && nameEl.scrollWidth<=250){
       return;
     }
     size--;
