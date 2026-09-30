@@ -558,6 +558,81 @@ async function getLocalBackgroundRemover(){
   return imglyRemoveBackgroundPromise;
 }
 
+
+async function refineBackgroundBlob(blob){
+  // Pós-processamento conservador do recorte: remove pequenos resíduos
+  // desconectados e pixels de halo, preservando o maior componente da pessoa.
+  const src=URL.createObjectURL(blob);
+  try{
+    const img=await new Promise((resolve,reject)=>{
+      const im=new Image(); im.onload=()=>resolve(im); im.onerror=reject; im.src=src;
+    });
+    const w=img.naturalWidth,h=img.naturalHeight;
+    if(!w||!h)return blob;
+    const c=document.createElement('canvas'); c.width=w;c.height=h;
+    const ctx=c.getContext('2d',{willReadFrequently:true});
+    ctx.drawImage(img,0,0);
+    const data=ctx.getImageData(0,0,w,h);
+    const a=data.data;
+    const n=w*h;
+    const mask=new Uint8Array(n);
+    const threshold=28;
+    for(let i=0,p=0;i<n;i++,p+=4) mask[i]=a[p+3]>threshold?1:0;
+
+    // Remove componentes pequenas. O componente principal é escolhido por
+    // área + proximidade do centro, evitando apagar cabelo/roupa isolados.
+    const seen=new Uint8Array(n);
+    const comps=[];
+    const q=new Int32Array(n);
+    for(let start=0;start<n;start++){
+      if(!mask[start]||seen[start])continue;
+      let head=0,tail=0,area=0,sumX=0,sumY=0;
+      q[tail++]=start; seen[start]=1;
+      while(head<tail){
+        const cur=q[head++]; area++;
+        const x=cur%w,y=(cur/w)|0; sumX+=x;sumY+=y;
+        const l=cur-1,r=cur+1,u=cur-w,d=cur+w;
+        if(x>0&&mask[l]&&!seen[l]){seen[l]=1;q[tail++]=l}
+        if(x<w-1&&mask[r]&&!seen[r]){seen[r]=1;q[tail++]=r}
+        if(y>0&&mask[u]&&!seen[u]){seen[u]=1;q[tail++]=u}
+        if(y<h-1&&mask[d]&&!seen[d]){seen[d]=1;q[tail++]=d}
+      }
+      comps.push({area,cx:sumX/area,cy:sumY/area,pixels:q.slice(0,tail)});
+    }
+    if(!comps.length)return blob;
+    const cx0=w/2,cy0=h*0.45;
+    comps.sort((a,b)=>{
+      const sa=a.area*(1+0.35*Math.max(0,1-Math.hypot(a.cx-cx0,(a.cy-cy0)*0.8)/Math.hypot(w,h)));
+      const sb=b.area*(1+0.35*Math.max(0,1-Math.hypot(b.cx-cx0,(b.cy-cy0)*0.8)/Math.hypot(w,h)));
+      return sb-sa;
+    });
+    const keep=new Uint8Array(n);
+    // Mantém o principal e componentes relevantes próximos dele (ex.: cabelo
+    // fino separado), mas elimina sujeiras pequenas do fundo.
+    const main=comps[0];
+    for(const idx of main.pixels)keep[idx]=1;
+    const minArea=Math.max(24,Math.floor(main.area*0.003));
+    for(let ci=1;ci<comps.length;ci++){
+      const comp=comps[ci];
+      if(comp.area<minArea)continue;
+      const dist=Math.hypot(comp.cx-main.cx, (comp.cy-main.cy)*0.8);
+      if(dist<Math.max(w,h)*0.18 && comp.area>main.area*0.01){
+        for(const idx of comp.pixels)keep[idx]=1;
+      }
+    }
+    for(let i=0,p=0;i<n;i++,p+=4){
+      if(!keep[i]){a[p+3]=0;continue}
+      // Limpeza leve de halo: pixels muito transparentes ficam totalmente
+      // transparentes; não fazemos erosão agressiva para não cortar cabelo.
+      if(a[p+3]<72)a[p+3]=0;
+    }
+    ctx.putImageData(data,0,0);
+    return await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error('Falha ao refinar o recorte.')),'image/png',1));
+  }finally{
+    URL.revokeObjectURL(src);
+  }
+}
+
 removeBgBtn.addEventListener('click',async()=>{
   if(!selectedImageFile)return;
   removeBgBtn.disabled=true;
@@ -590,9 +665,10 @@ removeBgBtn.addEventListener('click',async()=>{
       });
     }
     if(!blob || !blob.size)throw new Error('O processamento retornou uma imagem vazia.');
+    blob=await refineBackgroundBlob(blob);
     const url=URL.createObjectURL(blob);
     showPhotoSource(url,true);
-    setBgStatus('✓ Fundo removido localmente. A imagem não foi enviada para uma API de remoção.', 'ok');
+    setBgStatus('✓ Fundo removido e recorte refinado localmente. A imagem não foi enviada para uma API.', 'ok');
   }catch(e){
     console.error(e);
     setBgStatus('Erro ao remover o fundo: '+(e?.message||'não foi possível processar a imagem.')+' Você ainda pode usar a foto original.', 'error');
@@ -1065,8 +1141,12 @@ async function removeBgForBatch(file){
       else if(key&&key.startsWith('compute:')) batchProgress.textContent='Removendo fundo… '+pct+'%';
     }
   }};
-  try{return await removeBackground(file,config)}catch(e){
-    return await removeBackground(file,{model:'isnet_fp16',output:{format:'image/png',quality:1}});
+  try{
+    const blob=await removeBackground(file,config);
+    return await refineBackgroundBlob(blob);
+  }catch(e){
+    const blob=await removeBackground(file,{model:'isnet_fp16',output:{format:'image/png',quality:1}});
+    return await refineBackgroundBlob(blob);
   }
 }
 
