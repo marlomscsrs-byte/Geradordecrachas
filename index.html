@@ -823,22 +823,32 @@ function canvasBadge(){
     ctx.fill();
 
     if(imageLoaded && photo.complete){
+      // Renderiza a foto no canvas usando exatamente a mesma lógica do
+      // <img> da prévia: 292x430 + object-fit: cover + object-position: center top.
+      // Isso evita diferenças entre o que o usuário vê e o arquivo exportado.
       const nw=photo.naturalWidth, nh=photo.naturalHeight;
-      const imgBaseH=m.photoH;
-      const imgBaseY=m.photoY;
-      const fit=Math.max(m.photoW/nw,imgBaseH/nh);
-      const baseW=nw*fit, baseH=nh*fit;
+      const layerW=m.photoW, layerH=m.photoH;
+      const fit=Math.max(layerW/nw,layerH/nh);
+      const renderedW=nw*fit, renderedH=nh*fit;
+      const layer=document.createElement('canvas');
+      layer.width=Math.max(1,Math.round(layerW*scale));
+      layer.height=Math.max(1,Math.round(layerH*scale));
+      const lctx=layer.getContext('2d');
+      lctx.scale(scale,scale);
+      // object-position: center top
+      const objectX=(layerW-renderedW)/2;
+      const objectY=0;
+      lctx.drawImage(photo,objectX,objectY,renderedW,renderedH);
+
       const sx=zoom*scaleX, sy=zoom*scaleY;
-      const dw=baseW*sx, dh=baseH*sy;
-      const baseLeft=m.photoX+(m.photoW-baseW)/2;
-      const baseTop=imgBaseY;
-      const drawX=baseLeft + (baseW-dw)/2 + photoX;
-      const drawY=baseTop + (baseH-dh)/2 + photoY;
+      const drawW=layerW*sx, drawH=layerH*sy;
+      const drawX=m.photoX + (layerW-drawW)/2 + photoX;
+      const drawY=m.photoY + (layerH-drawH)/2 + photoY;
 
       // Exatamente a mesma janela de corte mostrada na prévia.
       ctx.save();
       ctx.beginPath(); ctx.rect(cropX,cropY,cropW,cropH); ctx.clip();
-      ctx.drawImage(photo,drawX,drawY,dw,dh);
+      ctx.drawImage(layer,drawX,drawY,drawW,drawH);
       ctx.restore();
     }
 
