@@ -222,6 +222,7 @@ body{background:#eef1f3}
   <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/*">
   <button class="removeBg" id="removeBg" type="button" disabled>✨ REMOVER FUNDO</button>
   <div class="bgStatus" id="bgStatus" aria-live="polite"></div>
+  <div class="note2" style="margin-top:5px">Modo profissional: quando o site estiver publicado com o servidor configurado, a remoção usa <b>remove.bg</b>. Se o servidor não estiver disponível, o sistema cai automaticamente para a IA local.</div>
 
   <label class="title" for="nameInput">Nome completo</label>
   <input id="nameInput" type="text" value="Nome do Colaborador">
@@ -550,6 +551,33 @@ file.addEventListener('change',()=>{
 });
 
 let imglyRemoveBackgroundPromise=null;
+
+// Tenta primeiro o removedor profissional no servidor. A chave da API NUNCA
+// fica neste HTML: ela permanece como variável de ambiente no servidor.
+async function removeBackgroundProfessional(file,onProgress){
+  if(!file) throw new Error('Nenhuma foto selecionada.');
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),120000);
+  try{
+    onProgress?.('Conectando ao removedor profissional…');
+    const fd=new FormData();
+    fd.append('image',file,file.name||'foto.jpg');
+    const response=await fetch('/api/remove-bg',{method:'POST',body:fd,signal:controller.signal,headers:{'Accept':'image/png'}});
+    if(!response.ok){
+      let detail='';
+      try{detail=(await response.json())?.error||''}catch(_){ }
+      const err=new Error(detail||('Servidor de remoção retornou HTTP '+response.status));
+      err.code=response.status;
+      throw err;
+    }
+    const blob=await response.blob();
+    if(!blob.size) throw new Error('O servidor retornou uma imagem vazia.');
+    return blob;
+  }finally{
+    clearTimeout(timeout);
+  }
+}
+
 async function getLocalBackgroundRemover(){
   if(!imglyRemoveBackgroundPromise){
     imglyRemoveBackgroundPromise=import('https://esm.sh/@imgly/background-removal@1.7.0?bundle')
@@ -670,42 +698,83 @@ async function alphaCoverage(blob){
   }finally{URL.revokeObjectURL(src)}
 }
 
+function showRemoveBgFallback(){
+  let box=document.getElementById('removeBgFallback');
+  if(!box){
+    box=document.createElement('div');
+    box.id='removeBgFallback';
+    box.style.cssText='margin-top:10px;padding:12px 14px;border:1px solid #d9d9d9;border-radius:10px;background:#fafafa;font-size:13px;line-height:1.45;color:#444;';
+    box.innerHTML='<div style="font-weight:700;margin-bottom:5px;">⚠️ O recorte não ficou perfeito?</div><div style="margin-bottom:9px;">Você pode melhorar esta mesma foto no remove.bg e depois importar o PNG transparente aqui.</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="openRemoveBg" style="border:0;border-radius:8px;padding:8px 12px;background:#111;color:#fff;font-weight:700;cursor:pointer;">⚡ MELHORAR NO REMOVE.BG</button><button type="button" id="importRemoveBgPng" style="border:1px solid #bbb;border-radius:8px;padding:8px 12px;background:#fff;color:#222;font-weight:700;cursor:pointer;">📥 IMPORTAR PNG</button></div><input id="removeBgPngInput" type="file" accept="image/png,image/webp" style="display:none">';
+    removeBgBtn.parentNode.appendChild(box);
+    document.getElementById('openRemoveBg').onclick=()=>window.open('https://www.remove.bg/','_blank','noopener,noreferrer');
+    document.getElementById('importRemoveBgPng').onclick=()=>document.getElementById('removeBgPngInput').click();
+    document.getElementById('removeBgPngInput').onchange=e=>{
+      const f=e.target.files?.[0]; if(!f)return;
+      selectedImageFile=f;
+      const url=URL.createObjectURL(f);
+      showPhotoSource(url,true);
+      setBgStatus('✓ PNG processado importado. Agora ele será usado no crachá.','ok');
+      e.target.value='';
+    };
+  }
+  box.style.display='block';
+}
+
 removeBgBtn.addEventListener('click',async()=>{
   if(!selectedImageFile)return;
   removeBgBtn.disabled=true;
   removeBgBtn.classList.add('loading');
-  removeBgBtn.textContent='⏳ PREPARANDO IA...';
-  setBgStatus('O processamento é feito neste computador. Na primeira vez, o navegador pode baixar o modelo de IA e levar um pouco mais de tempo.');
+  removeBgBtn.textContent='⏳ PROCESSANDO...';
   try{
-    const removeBackground=await getLocalBackgroundRemover();
-    removeBgBtn.textContent='⏳ REMOVENDO FUNDO...';
-    const config={
-      model:'isnet_fp16',
-      device:'cpu',
-      output:{format:'image/png',quality:1},
-      progress:(key,current,total)=>{
-        if(total){
-          const pct=Math.max(0,Math.min(100,Math.round((current/total)*100)));
-          if(key&&key.startsWith('fetch:')) setBgStatus('Baixando/preparando o modelo de IA… '+pct+'%');
-          else if(key&&key.startsWith('compute:')) setBgStatus('Removendo o fundo… '+pct+'%');
-        }
-      }
-    };
-    let blob;
+    let blob=null;
+    let usedProfessional=false;
+
+    // 1) Primeiro tenta o servidor profissional (remove.bg).
     try{
-      blob=await removeBackground(selectedImageFile,config);
-    }catch(firstError){
-      console.warn('Primeira tentativa do removedor falhou. Tentando novamente com configuração padrão.',firstError);
-      blob=await removeBackground(selectedImageFile,{
-        model:'isnet_fp16',
-        output:{format:'image/png',quality:1}
-      });
+      setBgStatus('Conectando ao removedor profissional…');
+      blob=await removeBackgroundProfessional(selectedImageFile,msg=>setBgStatus(msg));
+      usedProfessional=true;
+    }catch(proError){
+      console.warn('Removedor profissional indisponível. Usando IA local como fallback.',proError);
     }
+
+    // 2) Fallback local: continua funcionando mesmo com o HTML aberto localmente
+    // ou quando o servidor profissional estiver indisponível.
+    if(!blob){
+      removeBgBtn.textContent='⏳ PREPARANDO IA LOCAL...';
+      setBgStatus('Servidor profissional indisponível. Preparando a IA local neste computador…');
+      const removeBackground=await getLocalBackgroundRemover();
+      removeBgBtn.textContent='⏳ REMOVENDO FUNDO...';
+      const config={
+        model:'isnet_fp16',
+        device:'cpu',
+        output:{format:'image/png',quality:1},
+        progress:(key,current,total)=>{
+          if(total){
+            const pct=Math.max(0,Math.min(100,Math.round((current/total)*100)));
+            if(key&&key.startsWith('fetch:')) setBgStatus('Baixando/preparando a IA local… '+pct+'%');
+            else if(key&&key.startsWith('compute:')) setBgStatus('Removendo o fundo localmente… '+pct+'%');
+          }
+        }
+      };
+      try{
+        blob=await removeBackground(selectedImageFile,config);
+      }catch(firstError){
+        console.warn('Primeira tentativa local falhou. Tentando novamente com configuração padrão.',firstError);
+        blob=await removeBackground(selectedImageFile,{
+          model:'isnet_fp16',
+          output:{format:'image/png',quality:1}
+        });
+      }
+    }
+
     if(!blob || !blob.size)throw new Error('O processamento retornou uma imagem vazia.');
-    blob=await refineBackgroundBlob(blob);
+    if(!usedProfessional) blob=await refineBackgroundBlob(blob);
     const url=URL.createObjectURL(blob);
     showPhotoSource(url,true);
-    setBgStatus('✓ Fundo removido e recorte refinado localmente. A imagem não foi enviada para uma API.', 'ok');
+    setBgStatus(usedProfessional
+      ? '✓ Fundo removido com o modo profissional. O resultado transparente foi aplicado ao crachá.'
+      : '✓ Fundo removido com a IA local. O resultado transparente foi aplicado ao crachá.', 'ok');
   }catch(e){
     console.error(e);
     setBgStatus('Erro ao remover o fundo: '+(e?.message||'não foi possível processar a imagem.')+' Você ainda pode usar a foto original.', 'error');
@@ -1170,12 +1239,21 @@ function waitImage(img,src){
   });
 }
 async function removeBgForBatch(file){
+  // Lote usa o mesmo modo profissional da foto individual.
+  try{
+    batchProgress.textContent='Removendo fundo profissionalmente…';
+    const professional=await removeBackgroundProfessional(file,msg=>batchProgress.textContent=msg);
+    return professional;
+  }catch(proError){
+    console.warn('Lote: servidor profissional indisponível; usando IA local.',proError);
+  }
+
   const removeBackground=await getLocalBackgroundRemover();
   const config={model:'isnet_fp16',device:'cpu',output:{format:'image/png',quality:1},progress:(key,current,total)=>{
     if(total){
       const pct=Math.round((current/total)*100);
-      if(key&&key.startsWith('fetch:')) batchProgress.textContent='Preparando IA… '+pct+'%';
-      else if(key&&key.startsWith('compute:')) batchProgress.textContent='Removendo fundo… '+pct+'%';
+      if(key&&key.startsWith('fetch:')) batchProgress.textContent='Preparando IA local… '+pct+'%';
+      else if(key&&key.startsWith('compute:')) batchProgress.textContent='Removendo fundo localmente… '+pct+'%';
     }
   }};
   try{
