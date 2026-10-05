@@ -292,7 +292,7 @@ body{background:#eef1f3}
         <button class="secondary" id="batchNext" type="button">PRÓXIMO →</button>
       </div>
       <button class="batchZip" id="batchZip" type="button" disabled>📦 SALVAR TODOS EM ZIP</button>
-      <div class="batchHint">Ajuste a foto diretamente na prévia: arraste a pessoa, use +/− e os 8 puxadores de corte. O ajuste de cada crachá fica salvo antes de passar para o próximo.</div>
+      <div class="batchHint">Ajuste a foto diretamente na prévia: arraste a pessoa, use +/− e os 8 puxadores para alterar largura e altura separadamente. O ajuste de cada crachá fica salvo antes de passar para o próximo.</div>
     </div>
     <div class="batchProgress" id="batchProgress" aria-live="polite"></div>
   </div>
@@ -782,20 +782,26 @@ function moveResize(e){
   let newSX=resizeStartScaleX;
   let newSY=resizeStartScaleY;
 
-  // Escala proporcional para os quatro cantos, como no Canva.
+  // Cantos: largura e altura podem ser alteradas INDEPENDENTEMENTE,
+  // como no Canva. O usuário pode esticar somente na horizontal,
+  // somente na vertical ou nos dois eixos ao mesmo tempo.
   if(d==='tl'||d==='tr'||d==='bl'||d==='br'){
-    const horizontal = (d.includes('l') ? -dx : dx);
-    const vertical = (d.includes('t') ? -dy : dy);
-    const delta = Math.abs(horizontal) > Math.abs(vertical) ? horizontal : vertical;
-    const base=Math.max(BASE_PHOTO_W,BASE_PHOTO_H);
-    const factor=1 + (delta/base);
-    const uniform=Math.max(MIN_PHOTO_SCALE,Math.min(MAX_PHOTO_SCALE,resizeStartScaleX*factor));
-    newSX=uniform;
-    newSY=uniform;
+    const deltaX=(d.includes('l') ? -dx : dx);
+    const deltaY=(d.includes('t') ? -dy : dy);
+    const startW=BASE_PHOTO_W*resizeStartScaleX;
+    const startH=BASE_PHOTO_H*resizeStartScaleY;
+
+    const newW=Math.max(BASE_PHOTO_W*MIN_PHOTO_SCALE,
+      Math.min(BASE_PHOTO_W*MAX_PHOTO_SCALE,startW+deltaX));
+    const newH=Math.max(BASE_PHOTO_H*MIN_PHOTO_SCALE,
+      Math.min(BASE_PHOTO_H*MAX_PHOTO_SCALE,startH+deltaY));
+
+    newSX=newW/BASE_PHOTO_W;
+    newSY=newH/BASE_PHOTO_H;
 
     // Mantém o canto oposto no lugar.
-    const dw=BASE_PHOTO_W*(newSX-resizeStartScaleX);
-    const dh=BASE_PHOTO_H*(newSY-resizeStartScaleY);
+    const dw=newW-startW;
+    const dh=newH-startH;
     if(d.includes('l')) photoX=resizeStartPhotoX + dw/2;
     else photoX=resizeStartPhotoX - dw/2;
     if(d.includes('t')) photoY=resizeStartPhotoY + dh/2;
