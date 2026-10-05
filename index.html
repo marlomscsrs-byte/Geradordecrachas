@@ -425,30 +425,14 @@ let BASE_PHOTO_W=292, BASE_PHOTO_H=430;
 let cropX=36, cropY=78, cropW=292, cropH=430;
 
 function fitName(){
-  // O nome precisa caber visualmente na caixa branca e nunca pode ser cortado.
-  // Usamos a largura REAL disponível no elemento, reduzindo a fonte até que
-  // o conteúdo caiba em no máximo duas linhas.
-  const text=(nameEl.textContent||'Nome do colaborador').trim();
+  // Mantém o nome SEMPRE no tamanho padrão de 31px.
+  // Quando necessário, o navegador faz a quebra de linha automaticamente.
   nameEl.style.width='250px';
   nameEl.style.maxWidth='250px';
   nameEl.style.whiteSpace='normal';
   nameEl.style.overflowWrap='break-word';
   nameEl.style.wordBreak='normal';
-
-  let size=31;
-  while(size>=14){
-    nameEl.style.fontSize=size+'px';
-    nameEl.style.lineHeight='.9';
-    // Força o navegador a recalcular a quebra antes de medir.
-    void nameEl.offsetHeight;
-    const lineHeight=size*.9;
-    const maxHeight=lineHeight*2+2;
-    if(nameEl.scrollHeight<=maxHeight && nameEl.scrollWidth<=250){
-      return;
-    }
-    size--;
-  }
-  nameEl.style.fontSize='14px';
+  nameEl.style.fontSize='31px';
   nameEl.style.lineHeight='.9';
 }
 function updateName(){nameEl.textContent=nameInput.value.trim()||'Nome do colaborador';fitName();updateCompanyBadge()}
@@ -982,17 +966,12 @@ function canvasBadge(){
 
     // Texto variável é colocado por cima do modelo, sem alterar as artes fixas.
     ctx.fillStyle='#000'; ctx.textAlign='left';
-    let fs=Math.max(14,Math.min(31,parseFloat(getComputedStyle(nameEl).fontSize)||31));
+    const fs=31;
     const spacing=-1.2;
     const nameMax=currentRmcType==='THIRD'?260:250;
-    let lines=wrap(ctx,nameEl.textContent,nameMax,spacing);
-    while(lines.length>2 && fs>14){
-      fs--;
-      ctx.font='700 '+fs+'px Cambay, Arial, sans-serif';
-      lines=wrap(ctx,nameEl.textContent,nameMax,spacing);
-    }
     ctx.font='700 '+fs+'px Cambay, Arial, sans-serif';
-    lines=wrap(ctx,nameEl.textContent,nameMax,spacing).slice(0,2);
+    // Fonte fixa em 31px; nomes maiores são quebrados em novas linhas.
+    const lines=wrap(ctx,nameEl.textContent,nameMax,spacing);
     let y=m.nameTextY;
     const nx=m.nameTextX;
     for(const line of lines){ drawSpaced(ctx,line,nx,y,spacing); y+=fs*.9; }
