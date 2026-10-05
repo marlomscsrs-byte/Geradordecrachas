@@ -225,6 +225,14 @@ body{background:#eef1f3}
 
   <label class="title" for="nameInput">Nome completo</label>
   <input id="nameInput" type="text" value="Nome do Colaborador">
+  <div class="editorBox" style="margin-top:9px">
+    <div class="editorTitle">🔤 Tamanho do nome</div>
+    <div class="editorRow">
+      <label>Tamanho <input id="nameSize" type="range" min="18" max="40" value="31"></label>
+      <output id="nameSizeVal">31 px</output>
+    </div>
+    <div class="note2">O tamanho escolhido é mantido e o nome quebra automaticamente em linhas quando necessário.</div>
+  </div>
   <div id="companyField" class="companyField"><label class="title" for="companyInput">Empresa</label><input id="companyInput" type="text" placeholder="Nome da empresa"></div>
 
   <button class="primary" id="generate">GERAR CRACHÁ</button>
@@ -417,6 +425,8 @@ const photoEditor=document.getElementById('photoEditor');
 const placeholder=document.querySelector('.photo-placeholder');
 const nameInput=document.getElementById('nameInput');
 const nameEl=document.getElementById('name');
+const nameSize=document.getElementById('nameSize');
+const nameSizeVal=document.getElementById('nameSizeVal');
 const companyBadge=document.getElementById('companyBadge');
 let zoom=1, scaleX=1, scaleY=1, imageLoaded=false; let photoX=0, photoY=0; let dragging=false, dragStartX=0, dragStartY=0, startPhotoX=0, startPhotoY=0;
 let currentPhotoObjectUrl=null;
@@ -425,17 +435,19 @@ let BASE_PHOTO_W=292, BASE_PHOTO_H=430;
 let cropX=36, cropY=78, cropW=292, cropH=430;
 
 function fitName(){
-  // Mantém o nome SEMPRE no tamanho padrão de 31px.
-  // Quando necessário, o navegador faz a quebra de linha automaticamente.
+  // O tamanho é definido pelo usuário. A quebra de linha é automática.
   nameEl.style.width='250px';
   nameEl.style.maxWidth='250px';
   nameEl.style.whiteSpace='normal';
   nameEl.style.overflowWrap='break-word';
   nameEl.style.wordBreak='normal';
-  nameEl.style.fontSize='31px';
+  const size=parseInt(nameSize?.value||31,10);
+  nameEl.style.fontSize=size+'px';
   nameEl.style.lineHeight='.9';
+  if(nameSizeVal) nameSizeVal.textContent=size+' px';
 }
 function updateName(){nameEl.textContent=nameInput.value.trim()||'Nome do colaborador';fitName();updateCompanyBadge()}
+nameSize.addEventListener('input',fitName);
 function updateCompanyBadge(){companyBadge.textContent=(currentRmcType==='THIRD'?(companyInput?.value||'').trim():'')}
 companyInput.addEventListener('input',updateCompanyBadge);
 nameInput.addEventListener('input',updateName);
@@ -966,11 +978,11 @@ function canvasBadge(){
 
     // Texto variável é colocado por cima do modelo, sem alterar as artes fixas.
     ctx.fillStyle='#000'; ctx.textAlign='left';
-    const fs=31;
+    const fs=parseInt(nameSize?.value||31,10);
     const spacing=-1.2;
     const nameMax=currentRmcType==='THIRD'?260:250;
+    // Mantém 31 px também no PNG/PDF e quebra o nome automaticamente em linhas.
     ctx.font='700 '+fs+'px Cambay, Arial, sans-serif';
-    // Fonte fixa em 31px; nomes maiores são quebrados em novas linhas.
     const lines=wrap(ctx,nameEl.textContent,nameMax,spacing);
     let y=m.nameTextY;
     const nx=m.nameTextX;
@@ -1368,7 +1380,7 @@ async function clearBatch(){
   placeholder.style.display='flex';
   hidePhotoEditor();
   zoom=1;scaleX=1;scaleY=1;photoX=0;photoY=0;const mm=getModel(); cropX=mm.photoX;cropY=mm.photoY;cropW=mm.photoW;cropH=mm.photoH;
-  nameInput.value='Nome do Colaborador'; companyInput.value='';
+  nameInput.value='Nome do Colaborador'; companyInput.value=''; nameSize.value='31';
   updateName();
   applyPhotoTransform();
   updateBatchReviewUI();
