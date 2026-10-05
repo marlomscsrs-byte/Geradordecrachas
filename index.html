@@ -802,10 +802,10 @@ function moveResize(e){
     // Mantém o canto oposto no lugar.
     const dw=newW-startW;
     const dh=newH-startH;
-    if(d.includes('l')) photoX=resizeStartPhotoX + dw/2;
-    else photoX=resizeStartPhotoX - dw/2;
-    if(d.includes('t')) photoY=resizeStartPhotoY + dh/2;
-    else photoY=resizeStartPhotoY - dh/2;
+    if(d.includes('l')) photoX=resizeStartPhotoX - dw/2;
+    else photoX=resizeStartPhotoX + dw/2;
+    if(d.includes('t')) photoY=resizeStartPhotoY - dh/2;
+    else photoY=resizeStartPhotoY + dh/2;
   }else{
     // Alças centrais: redimensionam somente o eixo correspondente.
     if(d==='tm'||d==='bm'){
@@ -814,7 +814,7 @@ function moveResize(e){
         Math.min(BASE_PHOTO_H*MAX_PHOTO_SCALE,BASE_PHOTO_H*resizeStartScaleY+delta));
       newSY=newH/BASE_PHOTO_H;
       const dh=newH-BASE_PHOTO_H*resizeStartScaleY;
-      photoY=d==='tm' ? resizeStartPhotoY+dh/2 : resizeStartPhotoY-dh/2;
+      photoY=d==='tm' ? resizeStartPhotoY-dh/2 : resizeStartPhotoY+dh/2;
     }
     if(d==='ml'||d==='mr'){
       const delta=(d==='ml' ? -dx : dx);
@@ -822,7 +822,7 @@ function moveResize(e){
         Math.min(BASE_PHOTO_W*MAX_PHOTO_SCALE,BASE_PHOTO_W*resizeStartScaleX+delta));
       newSX=newW/BASE_PHOTO_W;
       const dw=newW-BASE_PHOTO_W*resizeStartScaleX;
-      photoX=d==='ml' ? resizeStartPhotoX+dw/2 : resizeStartPhotoX-dw/2;
+      photoX=d==='ml' ? resizeStartPhotoX-dw/2 : resizeStartPhotoX+dw/2;
     }
   }
 
